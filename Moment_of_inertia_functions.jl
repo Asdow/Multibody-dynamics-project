@@ -1,4 +1,4 @@
-# Functions used to calculate mass moment of inertias
+# Functions used to calculate mass moment of inertias a
 #######################################
 # Calculates the moment of inertia of a cylinder
 function func_MoI_cylinder!(J_array, mass, radius, w)

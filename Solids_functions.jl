@@ -1,4 +1,4 @@
-# Functions to build solids of type RigidBody
+# Functions to build solids of type RigidBody 
 #######################################
 # Creates a "cylinder" that is divided into n,k points, w is length of cylinder
 function fill_rigidbody_cylinder!(body::RigidBody, n::Int64, k::Int64, w::Float64, Radius::Float64, ρ::Float64)

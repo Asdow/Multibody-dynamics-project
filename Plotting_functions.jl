@@ -1,4 +1,4 @@
-# Functions related to plotting the simulation
+# Functions related to plotting the simulation s
 #######################################
 using Plots
 glvisualize()
@@ -37,7 +37,7 @@ z = Array(Float64,cube.n+1, cube.k)
 cube.q[1] = -0.311
 cube.q[2] = 0.544
 cube.q[3] = 0.531
-cube.q[4] = 0.571
+cube.q[4] = 0.5
 func_rotation_matrix!(cube.Rot_mat,cube.q)
 
 for j in range(1,cube.k)
@@ -48,6 +48,7 @@ for j in range(1,cube.k)
             z[i,j] = cube.XYZ_world[i,j][3]
       end
 end
-cube_graphics = surface(x,y,z);
+cube_graphics = surface!(x,y,z);
+
 #surface(vcat(x...), vcat(y...), vcat(z...))
 gui()

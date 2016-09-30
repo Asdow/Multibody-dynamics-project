@@ -1,4 +1,4 @@
-# Functions related to quaternions / Euler parameters
+# Functions related to quaternions / Euler parameters 
 #######################################
 # Calculates the rotation matrix based on quaternions
 function func_rotation_matrix!(Rotation_matrix, euler)

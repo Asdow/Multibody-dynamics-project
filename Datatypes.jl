@@ -1,5 +1,5 @@
 # Datatypes used for the simulation
-#######################################
+###################################### #
 # Rigid body datatype
 type RigidBody
       # Kappaleen koordinaattidata

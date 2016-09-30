@@ -1,4 +1,4 @@
-# Functions related to coordinate transformations
+# Functions related to coordinate transformations s
 #######################################
 # Funktio joka muuttaa asteet radiaaneiksi
 function func_radians(kulma::Float64)
