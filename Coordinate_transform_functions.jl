@@ -43,3 +43,18 @@ function func_cartesis_array!(R::Array, Θ::Array, XYZ::Array, n, k)
       end
     return nothing
 end
+
+# Transforms body's local coordinates to world coordinates
+function func_body_to_world(body::RigidBody)
+      @simd for j in range(1,body.k)
+          @simd for i in range(1,body.n+1)
+             @inbounds begin
+                  body.XYZ_world[i,j] = body.x + body.Rot_mat*body.XYZ_body[i,j]
+                  body.X_world[i,j] = body.XYZ_world[i,j][1]
+                  body.Y_world[i,j] = body.XYZ_world[i,j][2]
+                  body.Z_world[i,j] = body.XYZ_world[i,j][3]
+             end
+          end
+      end
+      return nothing
+end

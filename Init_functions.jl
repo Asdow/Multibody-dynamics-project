@@ -1,4 +1,4 @@
-# Functions used to initialize the simulation a
+# Functions used to initialize the simulation
 #######################################
 # Laskee sylinterin R_sektorin & Θ_sektorin.
 function func_sektorit_cylinder!(R_sektori, Θ_sektori, n::Int64, k::Int64, Radius::Float64)
