@@ -45,16 +45,26 @@ function func_cartesis_array!(R::Array, Θ::Array, XYZ::Array, n, k)
 end
 
 # Transforms body's local coordinates to world coordinates
-function func_body_to_world(body::RigidBody)
-      @simd for j in range(1,body.k)
-          @simd for i in range(1,body.n+1)
+function func_body_to_world(kpl::Kappale)
+      @simd for j in range(1,kpl.pd.k)
+          @simd for i in range(1,kpl.pd.n+1)
              @inbounds begin
-                  body.XYZ_world[i,j] = body.x + body.Rot_mat*body.XYZ_body[i,j]
-                  body.X_world[i,j] = body.XYZ_world[i,j][1]
-                  body.Y_world[i,j] = body.XYZ_world[i,j][2]
-                  body.Z_world[i,j] = body.XYZ_world[i,j][3]
+                  kpl.world.XYZ[i,j] = kpl.sv.x + kpl.aux.Rot_mat*kpl.body.XYZ[i,j]
+                  kpl.world.X[i,j] = kpl.world.XYZ[i,j][1]
+                  kpl.world.Y[i,j] = kpl.world.XYZ[i,j][2]
+                  kpl.world.Z[i,j] = kpl.world.XYZ[i,j][3]
              end
           end
       end
+      return nothing
+end
+
+# Transforms body's local inertia to world
+function func_inertia_body_to_world!(kpl::Kappale)
+      #Inertia_world = Rotation_matrix_body * Inertia_body * Rotation_matrix_body'
+      #a = @MMatrix(zeros(3,3))
+      a = zeros(3,3)
+      A_mul_B!(a, kpl.aux.Rot_mat, kpl.J.body)
+      A_mul_B!(kpl.J.world, a, kpl.aux.Rot_mat')
       return nothing
 end

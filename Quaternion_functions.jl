@@ -1,4 +1,4 @@
-# Functions related to quaternions / Euler parameters 
+# Functions related to quaternions / Euler parameters
 #######################################
 # Calculates the rotation matrix based on quaternions
 function func_rotation_matrix!(Rotation_matrix, euler)
@@ -25,5 +25,14 @@ function func_rotation_matrix!(Rotation_matrix, euler)
     Rotation_matrix[2,3]=2.0*(e3e4 - e1e2)
     Rotation_matrix[3,3]=e1_toiseen - e2_toiseen - e3_toiseen + e4_toiseen
 
+    return nothing
+end
+
+# Funktio joka normalisoi eulerin parametrit, jotta vältytään pyöristysvirheiden driftiltä
+function func_euler_normalize!(euler)
+    pituus = sqrt(euler[1]^2+euler[2]^2+euler[3]^2+euler[4]^2)
+    @simd for i in range(1,4)
+        @inbounds euler[i] = euler[i]/pituus
+    end
     return nothing
 end

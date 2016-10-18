@@ -31,6 +31,7 @@ type MassData
       ρ::AbstractFloat      # Kappaleen tiheys
       volume::AbstractFloat   # Kappaleen tilavuus
       massa::AbstractFloat    # Kappaleen massa
+      massa_inv::AbstractFloat
 end
 
 type Inertias
@@ -75,12 +76,14 @@ end
 type KontaktiData
       k::AbstractFloat      # Kappaleen jousivakio kontaktivoimien laskemiseen
       c::AbstractFloat      # Kappaleen vaimennusvakio kontaktivoimien laskemiseen
+      ki::AbstractFloat       # Kerroin rangaistusmenetelmän integraatiotermille
       vv::AbstractArray # Matriisi[{Vector3}, n+1,k], joka säilyttää kappaleen kontaktista aiheutuvat voimavektorit pöllin pisteille
       vv_perpendicular::AbstractArray # Matriisi, joka säilyttää voimavektoreita kohtisuoraan olevat voimavektorit
       torque_vektorit::AbstractArray # Matriisi, joka säilyttää voimavektoreista aiheutuvat pölliin kohdistuvat momentit.
       F_penalty::AbstractArray # Kontakteista johtuvat rangaistusvoimat
       painuma_max::AbstractArray # Kontaktien painuma
       painuma_max_edellinen::AbstractArray # Kontaktien painuma edellisellä aika-askeleella
+      max_dyi::AbstractArray # Max penetration error
 end
 
 type BoundingBox
@@ -231,7 +234,7 @@ end
 function func_init_MassData(T::Type)
       tempfloat::T = 0.0     # Kappaleen tiheys
 
-      MassDatatemp = MassData( tempfloat, tempfloat, tempfloat )
+      MassDatatemp = MassData( tempfloat, tempfloat, tempfloat, tempfloat )
 end
 ######################################
 # Inertias
@@ -337,6 +340,7 @@ end
 # KontaktiData
 function func_init_KontaktiData(n::Integer, k::Integer, T::Type)
       tempfloat::T = 0.0
+      tempvector_empty = Float64[]
       tempvector3 = zeros(T, 3)
       temparray = zeros(T, n+1,k)
       temparray3 = Array(Array{T},n+1,k)
@@ -346,10 +350,11 @@ function func_init_KontaktiData(n::Integer, k::Integer, T::Type)
           end
       end
 
-      KontaktiDatatemp = KontaktiData( tempfloat, tempfloat, temparray3, deepcopy(temparray3), deepcopy(temparray3), temparray, deepcopy(temparray), deepcopy(temparray) )
+      KontaktiDatatemp = KontaktiData( tempfloat, tempfloat, tempfloat, temparray3, deepcopy(temparray3), deepcopy(temparray3), temparray, deepcopy(temparray), deepcopy(temparray), tempvector_empty )
 end
 function func_init_KontaktiData(n::Integer, k::Integer, T::Type{StaticArray})
       tempfloat::T = 0.0
+      tempvector_empty = Float64[]
       tempvector3 = @MVector(zeros(3))
       temparray = @MMatrix(zeros(n+1,k))
       temparray3 = Array(StaticArrays.MVector{3,Float64},n+1,k)
@@ -359,10 +364,11 @@ function func_init_KontaktiData(n::Integer, k::Integer, T::Type{StaticArray})
           end
       end
 
-      KontaktiDatatemp = KontaktiData( tempfloat, tempfloat, temparray3, deepcopy(temparray3), deepcopy(temparray3), temparray, deepcopy(temparray), deepcopy(temparray) )
+      KontaktiDatatemp = KontaktiData( tempfloat, tempfloat, tempfloat, temparray3, deepcopy(temparray3), deepcopy(temparray3), temparray, deepcopy(temparray), deepcopy(temparray), tempvector_empty )
 end
 function func_init_KontaktiData(n::Integer, k::Integer, T::Type{AFArray})
       tempfloat = 0.0
+      tempvector_empty = Float64[]
       temparray = zeros(n+1,k)
       temparray3 = Array(ArrayFire.AFArray{Float64},n+1,k)
       a = similar(temparray3)
@@ -375,7 +381,7 @@ function func_init_KontaktiData(n::Integer, k::Integer, T::Type{AFArray})
           end
       end
 
-      KontaktiDatatemp = KontaktiData( tempfloat, tempfloat, temparray3, a, b, AFArray(temparray), AFArray(temparray), AFArray(temparray) )
+      KontaktiDatatemp = KontaktiData( tempfloat, tempfloat, tempfloat, temparray3, a, b, AFArray(temparray), AFArray(temparray), AFArray(temparray), AFArray(tempvector_empty) )
 end
 ######################################
 # BoundingBox
@@ -424,27 +430,4 @@ function func_init_body_empty(n::Integer, k::Integer, w::AbstractFloat, T::Type)
 
       body_empty = RigidBody( pd, body, world, md, J, sv, dv, aux, f, knt, kd, bb )
       return body_empty
-end
-#################################################################################
-# Kappaleiden alustusfunktiot
-# Funktio, joka täyttää olemassa olevan kappaleen datasolut
-function fill_rigidbody_pölli!(kpl::RigidBody)
-      # Täyttää sylinterikoordinaatit pöllin muodolla R_alku halkaisijalla
-      func_sektorit_serial!(kpl.body.R, kpl.body.Θ, kpl.pd.n, kpl.pd.k, R_alku)
-      # Päivitetään lokaali karteesinen koordinaatisto vastaamaan sylinterikoordinaattien muotoa
-      func_XYZ_pölli_rigidbody!(kpl.body.XYZ, kpl.body.R, kpl.body.Θ, kpl.pd.n, kpl.pd.k, kpl.pd.w)
-      # päivitetään tiheys
-      kpl.md.ρ = ρ
-      # Lasketaan tilauus ja massa
-      kpl.md.volume = pi*kpl.body.R[1,1]^2*kpl.pd.w
-      kpl.md.massa = kpl.md.ρ*kpl.md.volume
-      # Hitausmomentit
-      func_MoI_cylinder!(kpl.J.body, kpl.md.massa, kpl.body.R[1,1], kpl.pd.w)
-      kpl.J.body_inv = inv(kpl.J.body)
-      # Eulerin parametrit ja rotaatiomatriisit. Oletuksena on että alussa lokaali koordinaatisto on samansuuntainen globaalin kanssa
-      kpl.sv.q[1] = 1.0
-      func_rotation_matrix!(kpl.aux.Rot_mat,kpl.sv.q)
-      kpl.aux.Rot_mat_inv = inv(kpl.aux.Rot_mat)
-
-      return nothing
 end

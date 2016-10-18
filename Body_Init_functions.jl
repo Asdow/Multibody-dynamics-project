@@ -1,7 +1,7 @@
-# Functions used to initialize the simulation
+# Functions used to initialize the different bodies
 #######################################
 # Laskee sylinterin R_sektorin & Θ_sektorin.
-function func_sektorit_cylinder!(R_sektori, Θ_sektori, n::Int64, k::Int64, Radius::Float64)
+function func_sektorit_cylinder!(R_sektori::AbstractArray, Θ_sektori::AbstractArray, n::Integer, k::Integer, Radius::AbstractFloat)
     @simd for j in range(1,k)
         # Yhden sektorin kulma
         #Θ_sektori = 2*pi / n
@@ -21,7 +21,7 @@ function func_sektorit_cylinder!(R_sektori, Θ_sektori, n::Int64, k::Int64, Radi
 end
 # Laskee sylinterin lokaalit karteesiset koordinaatit
 function func_XYZ_cylinder_rigidbody!(XYZ, R_sektori, Θ_sektori, n, k, w)
-      local wi::Float64 = w / (k-1)
+      local wi = w / (k-1.0)
 
       @simd for j in range(1,k)
             @simd for i in 1:(n+1)
@@ -37,33 +37,33 @@ function func_XYZ_cylinder_rigidbody!(XYZ, R_sektori, Θ_sektori, n, k, w)
 end
 # Laskee kuution lokaalit karteesiset koordinaatit
 function func_XYZ_cube_rigidbody!(XYZ, h, w, l, n, k)
-      local hi::Float64 = h / 2.0
-      local wi::Float64 = w / 2.0
-      local li::Float64 = l / (k-1.0)
+      local hi = h / 2.0
+      local wi = w / 2.0
+      local li = l / (k-1.0)
 
       for j in range(1,k)
             @inbounds begin
-            XYZ[1,j][1] = wi
-            XYZ[2,j][1] = wi
-            XYZ[3,j][1] = -wi
-            XYZ[4,j][1] = -wi
-            XYZ[5,j][1] = wi
+                  XYZ[1,j][1] = wi
+                  XYZ[2,j][1] = wi
+                  XYZ[3,j][1] = -wi
+                  XYZ[4,j][1] = -wi
+                  XYZ[5,j][1] = wi
 
-            XYZ[1,j][2] = -hi
-            XYZ[2,j][2] = hi
-            XYZ[3,j][2] = hi
-            XYZ[4,j][2] = -hi
-            XYZ[5,j][2] = -hi
+                  XYZ[1,j][2] = -hi
+                  XYZ[2,j][2] = hi
+                  XYZ[3,j][2] = hi
+                  XYZ[4,j][2] = -hi
+                  XYZ[5,j][2] = -hi
 
-            if j == 1
-                  @simd for i in range(1,n+1)
-                        XYZ[i,j][3] = -l/2.0
+                  if j == 1
+                        @simd for i in range(1,n+1)
+                              XYZ[i,j][3] = -l/2.0
+                        end
+                  else
+                        @simd for i in range(1,n+1)
+                              XYZ[i,j][3] = XYZ[i,1][3] + li*(j-1.0)
+                        end
                   end
-            else
-                  @simd for i in range(1,n+1)
-                        XYZ[i,j][3] = XYZ[i,1][3] + li*(j-1.0)
-                  end
-            end
             end #inbounds end
       end
 

@@ -1,54 +1,71 @@
 # Functions related to plotting the simulation s
 #######################################
-using Plots
-glvisualize()
-gr()
+using PyCall
+using PyPlot
+# Function to initialize the plot
+function func_init_plot(xlim, ylim, zlim)
+      fig = plt[:figure]()
+      ax = fig[:add_subplot](111, projection="3d")
+      # Määritellään koordinaatiston rajat
+      ax[:set_xlim3d](-xlim,xlim)
+      ax[:set_zlim3d](-zlim,zlim)
+      ax[:set_ylim3d](-ylim,ylim)
 
-#############
-n = 100
-ts = linspace(0,8π,n)
-x = ts .* map(cos,ts)
-y = (0.1ts) .* map(sin,ts)
-z = 1:n
-plot(x,y,z,zcolor=reverse(z),m=(10,0.8,:blues,stroke(0)),leg=false,cbar=true,w=5)
-plot!(zeros(n),zeros(n),1:n,w=10)
-#####################
-plot(Plots.fakedata(50,5),w=3)
-################
-n = 50
-x = linspace(-3, 3, n)
-y = x
-
-z = Array(Float64, n, n)
-f(x, y) = cos(x^2 + y^2) / (1 + x^2 + y^2)
-for i in 1:n
-    for j in 1:n
-        z[j, i] = f(x[i], y[j])
-    end
+      ax[:view_init](elev=92, azim=-90)
+      fig[:canvas][:draw]()
+      return fig, ax
 end
 
-surface(x, y, z)
+# Function to plot the origin axes
+function func_origin_axes(ax)
+      X_akseli = [0.4 0.0 0.0; 0.0 0.0 0.0]
+      Y_akseli = [0.0 0.0 0.0; 0.0 0.4 0.0]
+      Z_akseli = [0.0 0.0 0.0; 0.0 0.0 0.4]
+      origin_axes = Array(PyCall.PyObject, 3)
+      origin_axes[1] = ax[:plot_wireframe](X_akseli[:,1], X_akseli[:,2], X_akseli[:,3], color="r")
+      origin_axes[2] = ax[:plot_wireframe](Y_akseli[:,1], Y_akseli[:,2], Y_akseli[:,3], color="g")
+      origin_axes[3] = ax[:plot_wireframe](Z_akseli[:,1], Z_akseli[:,2], Z_akseli[:,3], color="b")
+      return origin_axes
+end
+function func_origin_axes!(ax, origin_axes)
+      X_akseli = [0.4 0.0 0.0; 0.0 0.0 0.0]
+      Y_akseli = [0.0 0.0 0.0; 0.0 0.4 0.0]
+      Z_akseli = [0.0 0.0 0.0; 0.0 0.0 0.4]
+      #origin_axes = Array(PyCall.PyObject, 3)
+      origin_axes[1] = ax[:plot_wireframe](X_akseli[:,1], X_akseli[:,2], X_akseli[:,3], color="r")
+      origin_axes[2] = ax[:plot_wireframe](Y_akseli[:,1], Y_akseli[:,2], Y_akseli[:,3], color="g")
+      origin_axes[3] = ax[:plot_wireframe](Z_akseli[:,1], Z_akseli[:,2], Z_akseli[:,3], color="b")
+      return nothing
+end
 
-#########
-x = Array(Float64, cube.n+1, cube.k)
-y = Array(Float64,cube.n+1, cube.k)
-z = Array(Float64,cube.n+1, cube.k)
+# Function to plot the body's local axes
+function func_origin_axes(ax, body)
+      X_akseli = body.sv.x + body.aux.Rot_mat*[0.2; 0.0; 0.0]
+      Y_akseli = body.sv.x + body.aux.Rot_mat*[0.0; 0.2; 0.0]
+      Z_akseli = body.sv.x + body.aux.Rot_mat*[0.0; 0.0; 0.2]
 
-cube.q[1] = -0.311
-cube.q[2] = 0.544
-cube.q[3] = 0.531
-cube.q[4] = 0.5
-func_rotation_matrix!(cube.Rot_mat,cube.q)
+      body_axes = Array(PyCall.PyObject, 3)
+      body_axes[1] = ax[:plot_wireframe]( [X_akseli[1]; body.sv.x[1]], [X_akseli[2]; body.sv.x[2]], [X_akseli[3]; body.sv.x[3]], color="r" )
+      body_axes[2] = ax[:plot_wireframe]([Y_akseli[1]; body.sv.x[1]], [Y_akseli[2]; body.sv.x[2]], [Y_akseli[3]; body.sv.x[3]], color="g")
+      body_axes[3] = ax[:plot_wireframe]([Z_akseli[1]; body.sv.x[1]], [Z_akseli[2]; body.sv.x[2]], [Z_akseli[3]; body.sv.x[3]], color="b")
+      return body_axes
+end
+function func_origin_axes!(ax, body, body_axes)
+      X_akseli = body.sv.x + body.aux.Rot_mat*[0.2; 0.0; 0.0]
+      Y_akseli = body.sv.x + body.aux.Rot_mat*[0.0; 0.2; 0.0]
+      Z_akseli = body.sv.x + body.aux.Rot_mat*[0.0; 0.0; 0.2]
 
-for j in range(1,cube.k)
-      for i in range(1,cube.n+1)
-            cube.XYZ_world[i,j] = cube.Rot_mat*cube.XYZ_body[i,j]
-            x[i,j] = cube.XYZ_world[i,j][1]
-            y[i,j] = cube.XYZ_world[i,j][2]
-            z[i,j] = cube.XYZ_world[i,j][3]
+      #body_axes = Array(PyCall.PyObject, 3)
+      body_axes[1] = ax[:plot_wireframe]( [X_akseli[1]; body.sv.x[1]], [X_akseli[2]; body.sv.x[2]], [X_akseli[3]; body.sv.x[3]], color="r" )
+      body_axes[2] = ax[:plot_wireframe]([Y_akseli[1]; body.sv.x[1]], [Y_akseli[2]; body.sv.x[2]], [Y_akseli[3]; body.sv.x[3]], color="g")
+      body_axes[3] = ax[:plot_wireframe]([Z_akseli[1]; body.sv.x[1]], [Z_akseli[2]; body.sv.x[2]], [Z_akseli[3]; body.sv.x[3]], color="b")
+      return nothing
+end
+
+# Function to plot all the bodies
+function func_draw_bodies!(ax, body_plot, Nbodies)
+      for i in range(1,length(Nbodies))
+            body_plot[i] = ax[:plot_wireframe](Nbodies[i].world.X, Nbodies[i].world.Y, Nbodies[i].world.Z)
       end
+      return nothing
 end
-cube_graphics = surface!(x,y,z);
-
-#surface(vcat(x...), vcat(y...), vcat(z...))
-gui()
