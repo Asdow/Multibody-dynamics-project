@@ -49,9 +49,14 @@ function test()
       t_init = 0.0
       delta_t = 0.01
       t_end = 2.50
-      t_step = 0
       sleep(0.2)
+
+      # SIMULATION LOOP
       for t = collect(t_init:delta_t:t_end)
+            # Clear forces
+            for i in range(1, length(Nbodies))
+                  func_clear_forces!(Nbodies[i])
+            end
             # Collision handling
             # Check for collisions
             func_ground_contact!(Nbodies, contact_list)
@@ -94,8 +99,6 @@ function test()
                   func_origin_axes!(ax, Nbodies[i+1], body_axes_array[i])
             end
             fig[:canvas][:flush_events]()
-            # Update timestep
-            t_step += 1
       end
       return nothing
 end

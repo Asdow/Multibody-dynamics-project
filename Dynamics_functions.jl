@@ -38,3 +38,11 @@ function func_euler!(euler_acc, euler_vel, euler, delta_t)
     end
     return nothing
 end
+# Function that clears a body's forces
+function func_clear_forces!(kpl::Kappale)
+      fill!(kpl.f.force_body, 0.0)
+      fill!(kpl.f.force_world, 0.0)
+      fill!(kpl.f.torque_body, 0.0)
+      fill!(kpl.f.torque_world, 0.0)
+      return nothing
+end
