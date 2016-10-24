@@ -64,7 +64,11 @@ function func_inertia_body_to_world!(kpl::Kappale)
       #Inertia_world = Rotation_matrix_body * Inertia_body * Rotation_matrix_body'
       #a = @MMatrix(zeros(3,3))
       a = zeros(3,3)
+      # body to world
       A_mul_B!(a, kpl.aux.Rot_mat, kpl.J.body)
       A_mul_B!(kpl.J.world, a, kpl.aux.Rot_mat')
+      # body_inv to world_inv
+      A_mul_B!(a, kpl.aux.Rot_mat, kpl.J.body_inv)
+      A_mul_B!(kpl.J.world_inv, a, kpl.aux.Rot_mat')
       return nothing
 end

@@ -11,7 +11,7 @@ function func_init_plot(xlim, ylim, zlim)
       ax[:set_zlim3d](-zlim,zlim)
       ax[:set_ylim3d](-ylim,ylim)
 
-      ax[:view_init](elev=92, azim=-90)
+      ax[:view_init](elev=90, azim=-90)
       fig[:canvas][:draw]()
       return fig, ax
 end
@@ -64,7 +64,7 @@ end
 
 # Function to plot all the bodies
 function func_draw_bodies!(ax, body_plot, Nbodies)
-      for i in range(1,length(Nbodies))
+      for i = collect(1:length(Nbodies))
             body_plot[i] = ax[:plot_wireframe](Nbodies[i].world.X, Nbodies[i].world.Y, Nbodies[i].world.Z)
       end
       return nothing

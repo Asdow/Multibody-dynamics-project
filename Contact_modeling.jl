@@ -21,7 +21,7 @@ function func_F_penalty(kp, painuma, kv, v_relative, ki, Iterm, Nkontaktit)
       # ki = integraatiokerroinvakio
       # Iterm = Integraatiotermi, joka laskee maksimipainuman virheen summautumista simulaation aikana
       # Nkontaktit = kontaktipisteiden kokonaismäärä, joihin kohdistuu rangaistusvoima
-      F_penalty = (kp*painuma - kv*v_relative + ki*Iterm) / Nkontaktit
+      F_penalty = max( (kp*painuma - kv*v_relative + ki*Iterm) / Nkontaktit, 0.0)
 end
 
 # Funktio joka laskee kontaktipisteiden suhteellisen nopeuden
@@ -82,9 +82,9 @@ function func_ground_contact!(Nbodies, contact_list)
 end
 
 # Function that handles ground contacts
-function func_ground_collisions(contact_list)
-      ϵ = 0.5
-      tolerance = 0.001
+function func_ground_collisions!(contact_list, Nbodies)
+      ϵ = 0.65
+      tolerance = 0.00001
       Nimpulse = 0
       Npenalty = 0
       impulse_contact = Array(Int,0)
@@ -112,37 +112,44 @@ function func_ground_collisions(contact_list)
             end
       end
       # Calculate the impulse contacts first
-      for i = collect(1:Nimpulse)
-            ṗa = func_p_dot(contact_list[impulse_contact[i]].A, contact_list[impulse_contact[i]].p)
-            ṗb = func_p_dot(contact_list[impulse_contact[i]].B, contact_list[impulse_contact[i]].p)
-            vrel = func_v_relative(ṗa, ṗb, contact_list[impulse_contact[i]].n)
+      if Nimpulse > 0
+            for i = collect(1:Nimpulse)
+                  ṗa = func_p_dot(contact_list[impulse_contact[i]].A, contact_list[impulse_contact[i]].p)
+                  ṗb = func_p_dot(contact_list[impulse_contact[i]].B, contact_list[impulse_contact[i]].p)
+                  vrel = func_v_relative(ṗa, ṗb, contact_list[impulse_contact[i]].n)
 
-            ra = contact_list[impulse_contact[i]].p - contact_list[impulse_contact[i]].A.sv.x
-            rb = contact_list[impulse_contact[i]].p - contact_list[impulse_contact[i]].B.sv.x
+                  ra = contact_list[impulse_contact[i]].p - contact_list[impulse_contact[i]].A.sv.x
+                  rb = contact_list[impulse_contact[i]].p - contact_list[impulse_contact[i]].B.sv.x
 
-            numerator = -(1.0 + ϵ)*vrel
-            # Denominator
-            # body A
-            term1 = cross(ra, contact_list[impulse_contact[i]].n)
-            term2 = contact_list[impulse_contact[i]].A.J.world_inv*term1
-            term3 = cross(term2,ra)
-            term4 = dot(contact_list[impulse_contact[i]].n,term3)
-            # body B
-            term1B = cross(rb, contact_list[impulse_contact[i]].n)
-            term2B = contact_list[impulse_contact[i]].B.J.world_inv*term1B
-            term3B = cross(term2B,rb)
-            term4B = dot(contact_list[impulse_contact[i]].n,term3B)
+                  numerator = -(1.0 + ϵ)*vrel
+                  # Denominator
+                  # body A
+                  term1 = cross(ra, contact_list[impulse_contact[i]].n)
+                  term2 = contact_list[impulse_contact[i]].A.J.world_inv*term1
+                  term3 = cross(term2,ra)
+                  term4 = dot(contact_list[impulse_contact[i]].n,term3)
+                  # body B
+                  term1B = cross(rb, contact_list[impulse_contact[i]].n)
+                  term2B = contact_list[impulse_contact[i]].B.J.world_inv*term1B
+                  term3B = cross(term2B,rb)
+                  term4B = dot(contact_list[impulse_contact[i]].n,term3B)
 
-            j_impulse = numerator / ( contact_list[impulse_contact[i]].A.md.massa_inv + contact_list[impulse_contact[i]].B.md.massa_inv + term4 + term4B)
+                  j_impulse = numerator / ( contact_list[impulse_contact[i]].A.md.massa_inv + contact_list[impulse_contact[i]].B.md.massa_inv + term4 + term4B)
 
-            # Impulse force
-            F_impulse = contact_list[impulse_contact[i]].n * j_impulse / Nimpulse
-            # Apply impulse to bodies
-            contact_list[impulse_contact[i]].A.sv.P += F_impulse
-            contact_list[impulse_contact[i]].B.sv.P -= F_impulse
+                  # Impulse force
+                  F_impulse = contact_list[impulse_contact[i]].n * j_impulse / Nimpulse
+                  # Apply impulse to bodies
+                  contact_list[impulse_contact[i]].A.sv.P += F_impulse
+                  contact_list[impulse_contact[i]].B.sv.P -= F_impulse
 
-            contact_list[impulse_contact[i]].A.sv.L += cross(ra, F_impulse)
-            contact_list[impulse_contact[i]].B.sv.L -= cross(rb, F_impulse)
+                  contact_list[impulse_contact[i]].A.sv.L += cross(ra, F_impulse)
+                  contact_list[impulse_contact[i]].B.sv.L -= cross(rb, F_impulse)
+            end
+            # Update velocities
+            for i  in length(Nbodies)
+                  Nbodies[i].dv.ẋ = Nbodies[i].sv.P*Nbodies[i].md.massa_inv
+                  Nbodies[i].aux.ω_world = Nbodies[i].J.world_inv*Nbodies[i].sv.L
+            end
       end
       # Calculate penaltymethods
       for i = collect(1:Npenalty)
@@ -156,8 +163,12 @@ function func_ground_collisions(contact_list)
 
             t_step = length(contact_list[penalty_contact[i]].A.knt.max_dyi)
             Iterm = func_Iterm(t_step, contact_list[penalty_contact[i]].A.knt.max_dyi)
-            # Lasketaan rangaistusvoima
-            F_penalty[2] = func_F_penalty(contact_list[penalty_contact[i]].B.knt.k, penetration, contact_list[penalty_contact[i]].B.knt.c, vrel, contact_list[penalty_contact[i]].B.knt.ki, Iterm, Npenalty)
+            # Calculate the penalty force coefficients
+            kp = 180.0*( contact_list[penalty_contact[i]].A.md.massa + contact_list[penalty_contact[i]].B.md.massa )
+            kv = 90.0*( contact_list[penalty_contact[i]].A.md.massa + contact_list[penalty_contact[i]].B.md.massa )
+            ki = 4.0*( contact_list[penalty_contact[i]].A.md.massa + contact_list[penalty_contact[i]].B.md.massa )
+            # Calculate the penalty force
+            F_penalty[2] = func_F_penalty(kp, penetration, kv, vrel, ki, Iterm, Npenalty)
             # Apply penalty force and torque to bodies
             contact_list[penalty_contact[i]].A.f.force_world += F_penalty
             contact_list[penalty_contact[i]].B.f.force_world -= F_penalty
