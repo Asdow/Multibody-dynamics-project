@@ -39,10 +39,6 @@ function test()
             # Update inertias
             func_inertia_body_to_world!(Nbodies[i])
       end
-      # system matrices
-      sysM_inv = func_build_SysM_inv(Nbodies)
-      sysF = func_build_sysF2(Nbodies)
-      sysSv = func_build_sysSv(Nbodies)
       # init contact list
       contact_list = Array(Contact, 0)
       # init plot
@@ -66,7 +62,7 @@ function test()
       # SIMULATION LOOP
       for t = collect(t_init:delta_t:t_end)
             # Clear forces
-            for i in range(1, length(Nbodies))
+            Threads.@threads for i in range(1, length(Nbodies))
                   func_clear_forces!(Nbodies[i])
             end
             # Collision handling
@@ -78,7 +74,7 @@ function test()
             end
 
             # Translation & Rotation
-            @simd for i = collect(1:length(Nbodies))
+            Threads.@threads for i = collect(1:length(Nbodies))
                   # Translation
                   F_external = g*Nbodies[i].md.massa
                   Nbodies[i].f.force_world += F_external
