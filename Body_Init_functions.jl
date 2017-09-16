@@ -35,37 +35,32 @@ function func_XYZ_cylinder_rigidbody!(XYZ, R_sektori, Θ_sektori, n, k, w)
       end
       return nothing
 end
-# Laskee kuution lokaalit karteesiset koordinaatit
-function func_XYZ_cube_rigidbody!(XYZ, h, w, l, n, k)
-      local hi = h / 2.0
+"""
+    cube_rigidbody!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
+Laskee kuution lokaalit karteesiset koordinaatit. Toimii vain jos Arrayn koko on 4x2
+"""
+function cube_rigidbody!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
+      @assert size(XYZ) == (4,2) "XYZ size != (4,2)"
+      n = size(XYZ,1)
+      k = size(XYZ,2)
       local wi = w / 2.0
-      local li = l / (k-1.0)
-
-      for j in range(1,k)
+      local hi = h / 2.0
+      local li = l / 2.0
+      for j in 1:k
             @inbounds begin
-                  XYZ[1,j][1] = wi
-                  XYZ[2,j][1] = wi
-                  XYZ[3,j][1] = -wi
-                  XYZ[4,j][1] = -wi
-                  XYZ[5,j][1] = wi
-
-                  XYZ[1,j][2] = -hi
-                  XYZ[2,j][2] = hi
-                  XYZ[3,j][2] = hi
-                  XYZ[4,j][2] = -hi
-                  XYZ[5,j][2] = -hi
-
-                  if j == 1
-                        @simd for i in range(1,n+1)
-                              XYZ[i,j][3] = -l/2.0
-                        end
-                  else
-                        @simd for i in range(1,n+1)
-                              XYZ[i,j][3] = XYZ[i,1][3] + li*(j-1.0)
-                        end
-                  end
-            end #inbounds end
+                  XYZ[1,j].x = wi
+                  XYZ[2,j].x = wi
+                  XYZ[3,j].x = -wi
+                  XYZ[4,j].x = -wi
+                  XYZ[1,j].y = -hi
+                  XYZ[2,j].y = hi
+                  XYZ[3,j].y = hi
+                  XYZ[4,j].y = -hi
+            end
       end
-
+      for i in 1:n
+            XYZ[i,1].z = -li
+            XYZ[i,2].z = li
+      end
       return nothing
 end

@@ -1,48 +1,93 @@
 # Functions for the rigid body dynamics
-# Funktio joka laskee omegalle 4x4 kokoisen skew symmetric matriisin globaalissa referenssikoordinaatistossa
-function func_omega_tilde4_world!(omega_tilde4, omega)
+"""
+    clear_forces!(kpl::Kappale)
+Clears body's forces.
+"""
+function clear_forces!(kpl::Kappale)
+      fill!(kpl.f.F, 0.0);
+      fill!(kpl.f.Fb, 0.0);
+      fill!(kpl.f.T, 0.0);
+      fill!(kpl.f.Tb, 0.0);
+      return nothing
+end
+
+"""
+    omega_skew!(ωskew, ω)
+Calculates 4x4 skew symmetric matrix in global coordinate frame
+"""
+function omega_skew!(ωskew, omega)
     @inbounds begin
-    omega_tilde4[1,1] = 0.0
-    omega_tilde4[2,1] = omega[1]
-    omega_tilde4[3,1] = omega[2]
-    omega_tilde4[4,1] = omega[3]
+          ωskew[1,1] = 0.0
+          ωskew[2,1] = omega[1]
+          ωskew[3,1] = omega[2]
+          ωskew[4,1] = omega[3]
 
-    omega_tilde4[1,2] = -omega[1]
-    omega_tilde4[2,2] = 0.0
-    omega_tilde4[3,2] = omega[3]
-    omega_tilde4[4,2] = -omega[2]
+          ωskew[1,2] = -omega[1]
+          ωskew[2,2] = 0.0
+          ωskew[3,2] = omega[3]
+          ωskew[4,2] = -omega[2]
 
-    omega_tilde4[1,3] = -omega[2]
-    omega_tilde4[2,3] = -omega[3]
-    omega_tilde4[3,3] = 0.0
-    omega_tilde4[4,3] = omega[1]
+          ωskew[1,3] = -omega[2]
+          ωskew[2,3] = -omega[3]
+          ωskew[3,3] = 0.0
+          ωskew[4,3] = omega[1]
 
-    omega_tilde4[1,4] = -omega[3]
-    omega_tilde4[2,4] = omega[2]
-    omega_tilde4[3,4] = -omega[1]
-    omega_tilde4[4,4] = 0.0
+          ωskew[1,4] = -omega[3]
+          ωskew[2,4] = omega[2]
+          ωskew[3,4] = -omega[1]
+          ωskew[4,4] = 0.0
     end
     return nothing
 end
-# velocity for Quaternions
-function func_euler_vel!(euler_vel, euler, omega_tilde4)
-    @simd for i in range(1,4)
-        @inbounds euler_vel[i] = 0.5*(omega_tilde4[i,1]*euler[1] + omega_tilde4[i,2]*euler[2] + omega_tilde4[i,3]*euler[3] + omega_tilde4[i,4]*euler[4])
-    end
-    return nothing
+"""
+    body_translation!(kpl::Kappale, delta_t::Real)
+Calculates body's linear momentum, linear velocity and reference point global location. Updates all three inplace.
+"""
+function body_translation!(kpl::Kappale, delta_t::Real)
+      @inbounds begin
+            # Liikemäärä
+            vecadd!(kpl.sv.P, kpl.f.F, delta_t)
+            # Massakeskipisteen nopeus
+            vecadd2!(kpl.dv.ẋ, kpl.sv.P, kpl.md.m_inv)
+            # Massakeskipisteen asema
+            vecadd!(kpl.sv.x, kpl.dv.ẋ, delta_t)
+      end
+      return nothing
 end
-# Quaternions
-function func_euler!(euler_acc, euler_vel, euler, delta_t)
-    for i in range(1,4)
-        euler[i] = euler[i] + euler_vel[i]*delta_t + 0.5*euler_acc[i]*(delta_t^2)
-    end
-    return nothing
+"""
+    body_rotation!(kpl::Kappale, delta_t::Real)
+Calculates body's angular momentum, angular velocity, reference point global orientation. Updates all inplace.
+"""
+function body_rotation!(kpl::Kappale, delta_t::Float64)
+      @inbounds begin
+            # Linear momentum
+            vecadd!(kpl.sv.L, kpl.f.T, delta_t)
+            # Angular velocity in global frame
+            A_mul_B!(kpl.aux.ω, kpl.md.J_inv, kpl.sv.L)
+            # Skew symmetric matrix
+            omega_skew!(kpl.aux.ωs, kpl.aux.ω)
+            # Quaternions time derivative
+            q_vel!(kpl.dv.q̇, kpl.sv.q, kpl.aux.ωs)
+            # Update Euler parameters
+            q!(kpl.sv.q, kpl.dv.q̇, delta_t)
+            # Normalize Euler parameters
+            normalize!(kpl.sv.q);
+            # Update Rotation matrices
+            rotmat!(kpl.aux.R, kpl.sv.q)
+            inverse!(kpl.aux.R_inv, kpl.aux.R)
+            # Update mass moment of inertia inverse in global frame
+            Jb_inv2world!(kpl)
+      end
+      return nothing
 end
-# Function that clears a body's forces
-function func_clear_forces!(kpl::Kappale)
-      fill!(kpl.f.force_body, 0.0)
-      fill!(kpl.f.force_world, 0.0)
-      fill!(kpl.f.torque_body, 0.0)
-      fill!(kpl.f.torque_world, 0.0)
+"""
+    body_dynamics!(kpl::Kappale, delta_t::Float64)
+Calculates body's translation and rotation, and updates position in global frame. Updates all inplace.
+"""
+function body_dynamics!(kpl::Kappale, delta_t::Float64)
+      body_translation!(kpl, delta_t)
+      body_rotation!(kpl, delta_t)
+      # Update body's global coordinates
+      body2world!(kpl)
       return nothing
 end
