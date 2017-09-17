@@ -36,31 +36,31 @@ function func_XYZ_cylinder_rigidbody!(XYZ, R_sektori, Θ_sektori, n, k, w)
       return nothing
 end
 """
-    cube_rigidbody!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
+    cube_coords!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
 Laskee kuution lokaalit karteesiset koordinaatit. Toimii vain jos Arrayn koko on 4x2
 """
-function cube_rigidbody!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
+function cube_coords!(XYZ::Array{point3D{Float64},2}, xl::T, yl::T, zl::T) where {T<:Float64}
       @assert size(XYZ) == (4,2) "XYZ size != (4,2)"
       n = size(XYZ,1)
       k = size(XYZ,2)
-      local wi = w / 2.0
-      local hi = h / 2.0
-      local li = l / 2.0
+      local xi = xl / 2.0
+      local yi = yl / 2.0
+      local zi = zl / 2.0
       for j in 1:k
             @inbounds begin
-                  XYZ[1,j].x = wi
-                  XYZ[2,j].x = wi
-                  XYZ[3,j].x = -wi
-                  XYZ[4,j].x = -wi
-                  XYZ[1,j].y = -hi
-                  XYZ[2,j].y = hi
-                  XYZ[3,j].y = hi
-                  XYZ[4,j].y = -hi
+                  XYZ[1,j].x = xi
+                  XYZ[2,j].x = xi
+                  XYZ[3,j].x = -xi
+                  XYZ[4,j].x = -xi
+                  XYZ[1,j].y = -yi
+                  XYZ[2,j].y = yi
+                  XYZ[3,j].y = yi
+                  XYZ[4,j].y = -yi
             end
       end
       for i in 1:n
-            XYZ[i,1].z = -li
-            XYZ[i,2].z = li
+            XYZ[i,1].z = -zi
+            XYZ[i,2].z = zi
       end
       return nothing
 end

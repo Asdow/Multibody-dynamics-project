@@ -23,55 +23,22 @@ function fill_rigidbody_cylinder!(kpl::RigidBody, Radius::Float64, ρ::Float64)
       return nothing
 end
 
-# Creates a cube that is h high, w wide and l deep
-function fill_rigidbody_cube!(body::RigidBody, h::Float64, w::Float64, l::Float64, ρ::Float64)
+# Creates a cuboid that's sides are xl, yl and zl.
+function create_cube!(body::RigidBody, xl::Float64, yl::Float64, zl::Float64)
       # Päivitetään lokaali karteesinen koordinaatisto vastaamaan kuution muotoa
-      func_XYZ_cube_rigidbody!(body.body.XYZ, h, w, l, body.pd.n, body.pd.k)
-      #func_z_midpoint_rigidbody!(body.XYZ_body, n, k, w)
-      # päivitetään tiheys
-      body.md.ρ = ρ
-      # Lasketaan tilauus ja massa
-      body.md.volume = func_vol_cube(h, w, l)
-      body.md.massa = body.md.ρ*body.md.volume
-      body.md.massa_inv = inv(body.md.massa)
-      # Hitausmomentit
-      func_MoI_cube!(body.J.body, body.md.massa, h, w, l)
-      body.J.body_inv = inv(body.J.body)
-      # Eulerin parametrit ja rotaatiomatriisit. Oletuksena on että alussa lokaali koordinaatisto on samansuuntainen globaalin kanssa
-      body.sv.q[1] = 1.0
-      func_rotation_matrix!(body.aux.Rot_mat,body.sv.q)
-      body.aux.Rot_mat_inv = inv(body.aux.Rot_mat)
-
+      cube_coords!(body.coords.XYZb, xl, yl, zl)
+      AABBb!(body)
+      # Moment of inertias
+      MoI_cube!(body.md.Jb, body.md.m, xl, yl, zl)
+      inverse!(body.md.Jb_inv, body.md.Jb)
+      Jb_inv2world!(body)
+      Jb2world!(body)
       return nothing
 end
 
 # Creates a Ground plane that is w wide and l deep and at height h from global origin
-function fill_rigidbody_Ground!(kpl::RigidBody, w, l, h)
-      kpl.pd.w = w
-#=      kpl.world.X = [-w/2.0; -w/2.0; w/2.0; w/2.0; -w/2.0]
-      kpl.world.Y = [h; h; h; h; h]
-      kpl.world.Z = [-l/2.0; l/2.0; l/2.0; -l/2.0; -l/2.0]
-      @simd for i in range(1,5)
-            kpl.world.XYZ[i] = [kpl.world.X[i]; kpl.world.Y[i]; kpl.world.Z[i]]
-      end
-=#
-      kpl.sv.x[2] = h
-      body_X = [-w/2.0; -w/2.0; w/2.0; w/2.0; -w/2.0]
-      body_Y = [0.0; 0.0; 0.0; 0.0; 0.0]
-      body_Z = [-l/2.0; l/2.0; l/2.0; -l/2.0; -l/2.0]
-      @simd for i in range(1,5)
-            kpl.body.XYZ[i] = [body_X[i]; body_Y[i]; body_Z[i]]
-      end
-      # Eulerin parametrit ja rotaatiomatriisit. Oletuksena on että alussa lokaali koordinaatisto on samansuuntainen globaalin kanssa
-      kpl.sv.q[1] = 1.0
-      func_rotation_matrix!(kpl.aux.Rot_mat,kpl.sv.q)
-      kpl.aux.Rot_mat_inv = inv(kpl.aux.Rot_mat)
-      func_body_to_world(kpl)
-
-      # Set ground's coefficients for the penalty method
-      kpl.knt.k = 5.0e3
-      kpl.knt.c = 1.5e3
-      kpl.knt.ki = 1.0e2
-      
-      return nothing
+function create_plane(w, l, h)
+      heightfield = zeros(Float32, w, l)
+      fill!(heightfield, h)
+      return heightfield
 end

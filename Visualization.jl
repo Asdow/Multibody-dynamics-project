@@ -33,9 +33,9 @@ Luodaan kappaleen pisteiden asemista GeometryTypes:n Points tyypit
 """
 function fposs(kpl::Kappale)
     poss = gt.GeometryTypes.Point{3,Float32}[];
-    for j in 1:size(kpl.coords.XYZ,2)
-        for i in 1:size(kpl.coords.XYZ,1)
-            push!(poss, gt.Point3f0(kpl.coords.XYZ[i,j]))
+    for j in 1:size(kpl.coords.XYZb,2)
+        for i in 1:size(kpl.coords.XYZb,1)
+            push!(poss, gt.Point3f0(kpl.coords.XYZb[i,j]))
         end
     end
     return poss
@@ -144,14 +144,31 @@ Creates a cube visualization. Only temporary until GeometryTypes package is used
 function cube_vis(body::Kappale)
       # Array that holds the body's visualizations
       bodyvis = gla.Context{gla.DeviceUnit}[];
-      poss = fposs(body);
+      poss = fposs(body); # body points local position
       spheres = gl.visualize((gt.Sphere{Float32}(gt.Point3f0(0.0), 0.05f0), poss), boundingbox=nothing);
       lines = gl.visualize(poss, :linesegment, thickness=0.5f0, indices=indexointi_cube(body), boundingbox=nothing);
       push!(bodyvis, spheres)
       push!(bodyvis, lines)
       # body reference coordinate axes
-      baselen = 0.02f0
-      dirlen = 0.8f0
+      push!(bodyvis, axes(0.02f0, 0.8f0))
+      # transform all visualizations to body's global location and orientation
+      gl.set_arg!(bodyvis, :model, transformation(body))
+      return bodyvis
+end
+"""
+    origin()
+Draws the global coordinate axes.
+"""
+function origin()
+      origin = gla.Context{gla.DeviceUnit}[];
+      push!(origin, axes(0.03f0, 1.0f0))
+      return origin
+end
+"""
+    axes(baselen::Float32, dirlen::Float32)
+Creates differently colored boxes in the direction of 3 axes. Baselen adjusts the size and dirlen the lenght.
+"""
+function axes(baselen::Float32, dirlen::Float32)
       # create an array of differently colored boxes in the direction of the 3 axes
       rectangles = [
           (gt.HyperRectangle{3,Float32}(gl.Vec3f0(0), gl.Vec3f0(dirlen, baselen, baselen)), col.RGBA(1f0,0f0,0f0,1f0)),
@@ -160,11 +177,10 @@ function cube_vis(body::Kappale)
       ];
       meshes = map(gl.GLNormalMesh, rectangles);
       colored_mesh = merge(meshes);
-      ref_coords = gl.visualize(colored_mesh);
-      gl.set_arg!(ref_coords, :model, transformation(body))
-      push!(bodyvis, ref_coords)
-      return bodyvis
+      ref_coords = gl.visualize(colored_mesh, boundingbox=nothing);
 end
+
+
 # Function which sets an argument of a Context/RenderObject.
 # If multiple RenderObjects are supplied, it'll try to set the same argument in all
 # of them.

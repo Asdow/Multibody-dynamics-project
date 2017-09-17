@@ -1,15 +1,5 @@
 # Functions related to coordinate transformations s
 #######################################
-# Funktio joka muuttaa asteet radiaaneiksi
-function func_radians(kulma::Float64)
-    kulma * (pi/180.0)
-end
-
-# Funktio joka muuttaa radiaanit asteiksi
-function func_asteet(kulma::Float64)
-    kulma * (180.0/pi)
-end
-
 # Funktio joka muuttaa polaarikoordinaatin carteesiseen koordinaatistoon
 function func_cartesis(R::Float64, Θ::Float64)
     x::Float64 = R * cos(Θ)
@@ -66,6 +56,24 @@ function body2world!(XYZ, svx, R, XYZb)
       return nothing
 end
 """
+    body2world!(XYZ::point3D{T}, svx, R, XYZb::point3D{T}) where T
+Transforms a point to world. Saves to XYZ.
+"""
+function body2world!(XYZ::point3D{T}, svx, R, XYZb::point3D{T}) where T
+          @inbounds A_mul_B!(XYZ, R, XYZb)
+          @inbounds XYZ .+= svx
+      return nothing
+end
+"""
+    body2world!(AABB::AABB, svx, R, AABBb::AABB)
+Transforms body's local AABB to world.
+"""
+function body2world!(AABB::AABB, svx, R, AABBb::AABB)
+      body2world!(AABB.min, svx, R, AABBb.min)
+      body2world!(AABB.max, svx, R, AABBb.max)
+      return nothing
+end
+"""
     Jb_inv2world!(kpl::Kappale)
 Transforms body's local inverted inertia matrix to world.
 """
@@ -87,41 +95,44 @@ Transforms 3x3 matrix from local to world. Saves to J.
 """
 function J_local2global!(J, rotmat_body, Jbody)
       @inbounds begin
-            RotJ11 = 0.0
-            RotJ21 = 0.0
-            RotJ31 = 0.0
-            RotJ12 = 0.0
-            RotJ22 = 0.0
-            RotJ32 = 0.0
-            RotJ13 = 0.0
-            RotJ23 = 0.0
-            RotJ33 = 0.0
-            for i in 1:3
-                  RotJ11 += rotmat_body[1,i]*Jbody[i,1]
-                  RotJ21 += rotmat_body[2,i]*Jbody[i,1]
-                  RotJ31 += rotmat_body[3,i]*Jbody[i,1]
-                  RotJ12 += rotmat_body[1,i]*Jbody[i,2]
-                  RotJ22 += rotmat_body[2,i]*Jbody[i,2]
-                  RotJ32 += rotmat_body[3,i]*Jbody[i,2]
-                  RotJ13 += rotmat_body[1,i]*Jbody[i,3]
-                  RotJ23 += rotmat_body[2,i]*Jbody[i,3]
-                  RotJ33 += rotmat_body[3,i]*Jbody[i,3]
+            if iszero(Jbody) == true
+                  fill!(J, zero(eltype(J)))
+            else
+                  RotJ11 = 0.0
+                  RotJ21 = 0.0
+                  RotJ31 = 0.0
+                  RotJ12 = 0.0
+                  RotJ22 = 0.0
+                  RotJ32 = 0.0
+                  RotJ13 = 0.0
+                  RotJ23 = 0.0
+                  RotJ33 = 0.0
+                  for i in 1:3
+                        RotJ11 += rotmat_body[1,i]*Jbody[i,1]
+                        RotJ21 += rotmat_body[2,i]*Jbody[i,1]
+                        RotJ31 += rotmat_body[3,i]*Jbody[i,1]
+                        RotJ12 += rotmat_body[1,i]*Jbody[i,2]
+                        RotJ22 += rotmat_body[2,i]*Jbody[i,2]
+                        RotJ32 += rotmat_body[3,i]*Jbody[i,2]
+                        RotJ13 += rotmat_body[1,i]*Jbody[i,3]
+                        RotJ23 += rotmat_body[2,i]*Jbody[i,3]
+                        RotJ33 += rotmat_body[3,i]*Jbody[i,3]
+                  end
+                  J[1,1] = RotJ11*rotmat_body[1,1] + RotJ12*rotmat_body[1,2] + RotJ13*rotmat_body[1,3]
+                  J[2,1] = RotJ21*rotmat_body[1,1] + RotJ22*rotmat_body[1,2] + RotJ23*rotmat_body[1,3]
+                  J[3,1] = RotJ31*rotmat_body[1,1] + RotJ32*rotmat_body[1,2] + RotJ33*rotmat_body[1,3]
+
+                  J[1,2] = RotJ11*rotmat_body[2,1] + RotJ12*rotmat_body[2,2] + RotJ13*rotmat_body[2,3]
+                  J[2,2] = RotJ21*rotmat_body[2,1] + RotJ22*rotmat_body[2,2] + RotJ23*rotmat_body[2,3]
+                  J[3,2] = RotJ31*rotmat_body[2,1] + RotJ32*rotmat_body[2,2] + RotJ33*rotmat_body[2,3]
+
+                  J[1,3] = RotJ11*rotmat_body[3,1] + RotJ12*rotmat_body[3,2] + RotJ13*rotmat_body[3,3]
+                  J[2,3] = RotJ21*rotmat_body[3,1] + RotJ22*rotmat_body[3,2] + RotJ23*rotmat_body[3,3]
+                  J[3,3] = RotJ31*rotmat_body[3,1] + RotJ32*rotmat_body[3,2] + RotJ33*rotmat_body[3,3]
             end
-            J[1,1] = RotJ11*rotmat_body[1,1] + RotJ12*rotmat_body[1,2] + RotJ13*rotmat_body[1,3]
-            J[2,1] = RotJ21*rotmat_body[1,1] + RotJ22*rotmat_body[1,2] + RotJ23*rotmat_body[1,3]
-            J[3,1] = RotJ31*rotmat_body[1,1] + RotJ32*rotmat_body[1,2] + RotJ33*rotmat_body[1,3]
-
-            J[1,2] = RotJ11*rotmat_body[2,1] + RotJ12*rotmat_body[2,2] + RotJ13*rotmat_body[2,3]
-            J[2,2] = RotJ21*rotmat_body[2,1] + RotJ22*rotmat_body[2,2] + RotJ23*rotmat_body[2,3]
-            J[3,2] = RotJ31*rotmat_body[2,1] + RotJ32*rotmat_body[2,2] + RotJ33*rotmat_body[2,3]
-
-            J[1,3] = RotJ11*rotmat_body[3,1] + RotJ12*rotmat_body[3,2] + RotJ13*rotmat_body[3,3]
-            J[2,3] = RotJ21*rotmat_body[3,1] + RotJ22*rotmat_body[3,2] + RotJ23*rotmat_body[3,3]
-            J[3,3] = RotJ31*rotmat_body[3,1] + RotJ32*rotmat_body[3,2] + RotJ33*rotmat_body[3,3]
       end
       return nothing
 end
-
 """
     rotmat!(body::Kappale)
 Calculates body's rotation matrix from quaternions.

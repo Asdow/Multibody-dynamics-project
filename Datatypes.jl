@@ -14,11 +14,19 @@ mutable struct PMCoeff{T<:Real} <: sa.FieldVector{3, T}
       c::T # Contact damping
       ki::T # Contact integration stiffness
 end
+struct AABB{T<:Real}
+      min::point3D{T}
+      max::point3D{T}
+end
 struct Coords{T<:Real}
       # Body shape described as a collection of points in global coordinates
       XYZ::Array{point3D{T},2}
       # Body shape described as a collection of points in local coordinates
       XYZb::Array{point3D{T},2}
+      # Global space AABB
+      AABB::AABB
+      # Local space AABB
+      AABBb::AABB
 end
 struct MassData{T<:Real}
       m::T # Mass
@@ -81,12 +89,19 @@ end
 # Worldcoords
 function init_Coords(n::T, k::T) where {T<:Integer}
       ta =[point3D(zeros(3)) for i in 1:n, j in 1:k];
-      Worldcoordstemp = Coords(ta, deepcopy(ta) )
+      bb = AABB(point3D(zeros(3)), point3D(zeros(3)))
+      Worldcoordstemp = Coords(ta, deepcopy(ta), bb, deepcopy(bb) )
 end
 # MassData
 function init_MassData(m::Float64)
       Jb = sa.MArray{Tuple{3,3},Float64}(zeros(3,3))
-      MD = MassData(m, inv(m), Jb, deepcopy(Jb), deepcopy(Jb), deepcopy(Jb))
+      # Handle 0 mass special case. Creates a body with inverted mass == 0. Won't move anywhere.
+      if iszero(m) == true
+            MD = MassData(m, m, Jb, deepcopy(Jb), deepcopy(Jb), deepcopy(Jb))
+      else
+            MD = MassData(m, inv(m), Jb, deepcopy(Jb), deepcopy(Jb), deepcopy(Jb))
+      end
+      return MD
 end
 # StateVariables
 function init_StateVariables()

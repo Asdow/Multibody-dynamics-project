@@ -1,19 +1,11 @@
 # Functions for modeling contact between bodies #
 #################################################
-type Contact
-      A::Kappale # Kappale joka sisältää verteksin
-      B::Kappale # Kappale joka sisältää pinnan
-
-      p::AbstractArray # Kontaktipisteen koordinaatit globaalissa koordinaatistossa
-      n::AbstractArray # Pinnan normaali, joka osoittaa ulospäin
-      eA::AbstractArray # Reunan suuntavektori kappaleelle A
-      eB::AbstractArray # Reunan suuntavektori kappaleelle B
-
-      vf::Bool # true jos kontakti on verteksi/pinta
-end
-
+# Contacts are modeled through penalty method based on:
+# Evan Drumwright.
+# "A Fast and Stable Penalty Method for Rigid Body Simulation."
+# IEEE Trans. on Visualization and Computer Graphics, vol. 14, no. 1, pp. 231-240, January/February, 2008.
 # funktio, joka laskee rangaistusvoiman
-function func_F_penalty(kp, painuma, kv, v_relative, ki, Iterm, Nkontaktit)
+function F_penalty(kp, painuma, kv, v_relative, ki, Iterm, Nkontaktit)
       # kp = jousivakio
       # painuma = kontaktipisteiden välinen penetraatio
       # kv = Vaimennusvakio
@@ -25,22 +17,22 @@ function func_F_penalty(kp, painuma, kv, v_relative, ki, Iterm, Nkontaktit)
 end
 
 # Funktio joka laskee kontaktipisteiden suhteellisen nopeuden
-function func_v_relative(ṗa::AbstractArray, ṗb::AbstractArray, normal::AbstractArray)
+function v_rel(ṗa::AbstractArray, ṗb::AbstractArray, normal::AbstractArray)
       # kontaktinormaali osoittaa kappaleen a suuntaan
       v_relative = dot(normal, (ṗa - ṗb))
 end
 
 # Funktio joka laskee kontaktipisteen nopeuden
-function func_p_dot(a::Kappale, point::AbstractArray)
+function ṗ(a::Kappale, point::AbstractArray)
       pdot = a.dv.ẋ + cross(a.aux.ω_world, (point - a.sv.x) )
 end
 
 # Funktio, joka laskee integraatiotermin
-function func_Iterm(t_step::Integer, max_dyi::Array)
-      λ::Float64 = 0.85
-      Iterm::Float64 = 0.0
+function Iterm(t_step::Integer, max_dyi::Array)
+      λ::Float64 = 0.85; # Forgetting factor
+      Iterm::Float64 = 0.0;
 
-      @simd for i = collect(1:t_step-1)
+      for i = collect(1:t_step-1)
             @inbounds Iterm += λ^(t_step-i-1) * max_dyi[i]
       end
       return Iterm
