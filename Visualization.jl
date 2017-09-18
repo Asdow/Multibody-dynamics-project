@@ -150,7 +150,7 @@ function cube_vis(body::Kappale)
       push!(bodyvis, spheres)
       push!(bodyvis, lines)
       # body reference coordinate axes
-      push!(bodyvis, axes(0.02f0, 0.8f0))
+      push!(bodyvis, axes(0.8f0, 1.0f0))
       # transform all visualizations to body's global location and orientation
       gl.set_arg!(bodyvis, :model, transformation(body))
       return bodyvis
@@ -160,24 +160,20 @@ end
 Draws the global coordinate axes.
 """
 function origin()
-      origin = gla.Context{gla.DeviceUnit}[];
-      push!(origin, axes(0.03f0, 1.0f0))
-      return origin
+      o = axes(1.0f0, 2.0f0);
+      return o::GLAbstraction.Context{GLAbstraction.DeviceUnit}
 end
 """
-    axes(baselen::Float32, dirlen::Float32)
-Creates differently colored boxes in the direction of 3 axes. Baselen adjusts the size and dirlen the lenght.
+    axes(len::Float32, t::Float32)
+Creates differently colored linesegments in the direction of 3 axes. Len adjusts the length and t the thickness.
 """
-function axes(baselen::Float32, dirlen::Float32)
-      # create an array of differently colored boxes in the direction of the 3 axes
-      rectangles = [
-          (gt.HyperRectangle{3,Float32}(gl.Vec3f0(0), gl.Vec3f0(dirlen, baselen, baselen)), col.RGBA(1f0,0f0,0f0,1f0)),
-          (gt.HyperRectangle{3,Float32}(gl.Vec3f0(0), gl.Vec3f0(baselen, dirlen, baselen)), col.RGBA(0f0,1f0,0f0,1f0)),
-          (gt.HyperRectangle{3,Float32}(gl.Vec3f0(0), gl.Vec3f0(baselen, baselen, dirlen)), col.RGBA(0f0,0f0,1f0,1f0))
-      ];
-      meshes = map(gl.GLNormalMesh, rectangles);
-      colored_mesh = merge(meshes);
-      ref_coords = gl.visualize(colored_mesh, boundingbox=nothing);
+function axes(len::Float32, t::Float32)
+      # Points describing the line segment positions.
+      ax = [gt.Point3f0(0), gt.Point3f0(len,0,0), gt.Point3f0(0), gt.Point3f0(0,len,0), gt.Point3f0(0), gt.Point3f0(0,0,len)];
+      # Colors for the line segments. length must be equal to positions.
+      cols = [col.RGBA(1f0,0f0,0f0,1f0), col.RGBA(1f0,0f0,0f0,1f0), col.RGBA(0f0,1f0,0f0,1f0), col.RGBA(0f0,1f0,0f0,1f0), col.RGBA(0f0,0f0,1f0,1f0), col.RGBA(0f0,0f0,1f0,1f0)];
+      axesvis = gl.visualize(ax, :linesegment, thickness=t, color=cols, boundingbox=nothing);
+      return axesvis::GLAbstraction.Context{GLAbstraction.DeviceUnit}
 end
 
 
