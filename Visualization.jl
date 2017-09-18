@@ -183,3 +183,6 @@ end
 # gl.set_arg!(robj::Context, sym::Symbol, value)
 # Esim
 # gl.set_arg!(lines, :model, transformation(pölli))
+
+# Way to get the attributedata/keywords from a visualization.
+# eg. bodyvis.children[].uniforms

@@ -18,15 +18,15 @@ struct AABB{T<:Real}
       min::point3D{T}
       max::point3D{T}
 end
-struct Coords{T<:Real}
-      # Body shape described as a collection of points in global coordinates
-      XYZ::Array{point3D{T},2}
-      # Body shape described as a collection of points in local coordinates
-      XYZb::Array{point3D{T},2}
+struct Shape{T<:Real}
+      # Body shape described as a HomogenousMesh in global coordinates
+      world::gt.HomogenousMesh{gt.Point{3,Float32},gt.Face{3,gt.OffsetInteger{-1,UInt32}},gt.Normal{3,Float32},Void,Void,Void,Void}
+      # Body shape described as a HomogenousMesh in local coordinates
+      body::gt.HomogenousMesh{gt.Point{3,Float32},gt.Face{3,gt.OffsetInteger{-1,UInt32}},gt.Normal{3,Float32},Void,Void,Void,Void}
       # Global space AABB
-      AABB::AABB
+      AABB::AABB{T}
       # Local space AABB
-      AABBb::AABB
+      AABBb::AABB{T}
 end
 struct MassData{T<:Real}
       m::T # Mass
@@ -74,7 +74,7 @@ end
 #################################################################################
 # Kappaletyyppien määrittely
 struct RigidBody <: Kappale
-      coords::Coords
+      shape::Shape
       md::MassData
       sv::StateVariables
       dv::Derivates
@@ -87,7 +87,8 @@ end
 # Init function for Datatypes
 ######################################
 # Worldcoords
-function init_Coords(n::T, k::T) where {T<:Integer}
+# FIXME Ei toimi tällä hetkellä, koska muutos mesheihin kesken.
+function init_shape(n::T, k::T) where {T<:Integer}
       ta =[point3D(zeros(3)) for i in 1:n, j in 1:k];
       bb = AABB(point3D(zeros(3)), point3D(zeros(3)))
       Worldcoordstemp = Coords(ta, deepcopy(ta), bb, deepcopy(bb) )
