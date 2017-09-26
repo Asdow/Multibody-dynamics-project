@@ -45,7 +45,7 @@ Calculates body's linear momentum, linear velocity and reference point global lo
 """
 function body_translation!(kpl::Kappale, delta_t::Real)
       @inbounds begin
-            # Liikemäärä
+            # Linear momentum
             vecadd!(kpl.sv.P, kpl.f.F, delta_t)
             # Massakeskipisteen nopeus
             vecadd2!(kpl.dv.ẋ, kpl.sv.P, kpl.md.m_inv)
@@ -60,7 +60,7 @@ Calculates body's angular momentum, angular velocity, reference point global ori
 """
 function body_rotation!(kpl::Kappale, delta_t::Float64)
       @inbounds begin
-            # Linear momentum
+            # Angular momentum
             vecadd!(kpl.sv.L, kpl.f.T, delta_t)
             # Angular velocity in global frame
             A_mul_B!(kpl.aux.ω, kpl.md.J_inv, kpl.sv.L)
@@ -68,9 +68,8 @@ function body_rotation!(kpl::Kappale, delta_t::Float64)
             omega_skew!(kpl.aux.ωs, kpl.aux.ω)
             # Quaternions time derivative
             q_vel!(kpl.dv.q̇, kpl.sv.q, kpl.aux.ωs)
-            # Update Euler parameters
+            # Update & normalize Euler parameters
             q!(kpl.sv.q, kpl.dv.q̇, delta_t)
-            # Normalize Euler parameters
             normalize!(kpl.sv.q);
             # Update Rotation matrices
             rotmat!(kpl.aux.R, kpl.sv.q)
@@ -87,7 +86,5 @@ Calculates body's translation and rotation, and updates position in global frame
 function body_dynamics!(kpl::Kappale, delta_t::Float64)
       body_translation!(kpl, delta_t)
       body_rotation!(kpl, delta_t)
-      # Update body's global coordinates
-      body2world!(kpl)
       return nothing
 end

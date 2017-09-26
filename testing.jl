@@ -2,6 +2,7 @@
 #######################################
 include("Multiprocess.jl")
 include("Packages.jl")
+include("Shapes.jl")
 include("Globals.jl")
 include("apufunktiot.jl")
 include("Quaternions.jl")
@@ -15,25 +16,20 @@ include("Coordinate_transformations.jl")
 include("Dynamics_functions.jl")
 
 function test()
-      body = init_body_empty(4, 2, 15.0, 0.6, 0.4);
-      # Define body as a cube
-      create_cube!(body, 2.0, 2.0, 2.0)
+      body = create_cube(1.0,1.0,1.0, 15.0, 0.6, 0.45);
       # set location and orientation to random
       body.sv.x[:] = rand(3)
       body.sv.q[:] = rand(4)
       normalize!(body.sv.q)
       rotmat!(body)
-      # Set world coords
-      body2world!(body)
       # Create plane so body doesn't fall into emptiness
-      plane = init_body_empty(4, 2, 0.0, 0.6, 0.4);
-      create_cube!(plane, 20.0, 20.0, 0.2)
+      plane = create_cube(10.0,10.0,0.2, 0.0, 0.6, 0.45);
       plane.sv.x[3] = -3.0;
 
       window = init_screen();
       origo = origin();
-      bodyvis = cube_vis(body);
-      planevis = cube_vis(plane);
+      bodyvis = body_vis(body);
+      planevis = body_vis(plane);
       pop!(planevis); # Remove local CS from plane
 
       gl._view(origo, window, camera=:perspective);

@@ -19,8 +19,6 @@ struct AABB{T<:Real}
       max::point3D{T}
 end
 struct Shape{T<:Real}
-      # Body shape described as a HomogenousMesh in global coordinates
-      world::gt.HomogenousMesh{gt.Point{3,Float32},gt.Face{3,gt.OffsetInteger{-1,UInt32}},gt.Normal{3,Float32},Void,Void,Void,Void}
       # Body shape described as a HomogenousMesh in local coordinates
       body::gt.HomogenousMesh{gt.Point{3,Float32},gt.Face{3,gt.OffsetInteger{-1,UInt32}},gt.Normal{3,Float32},Void,Void,Void,Void}
       # Global space AABB
@@ -74,7 +72,7 @@ end
 #################################################################################
 # Kappaletyyppien määrittely
 struct RigidBody <: Kappale
-      shape::Shape
+      sh::Shape
       md::MassData
       sv::StateVariables
       dv::Derivates
@@ -86,12 +84,11 @@ end
 ######################################
 # Init function for Datatypes
 ######################################
-# Worldcoords
-# FIXME Ei toimi tällä hetkellä, koska muutos mesheihin kesken.
-function init_shape(n::T, k::T) where {T<:Integer}
-      ta =[point3D(zeros(3)) for i in 1:n, j in 1:k];
+# Shapedata
+function init_shape(x::T, y::T, z::T) where {T<:Real}
+      body = cube(x, y, z)
       bb = AABB(point3D(zeros(3)), point3D(zeros(3)))
-      Worldcoordstemp = Coords(ta, deepcopy(ta), bb, deepcopy(bb) )
+      sh = Shape(body, bb, deepcopy(bb) )
 end
 # MassData
 function init_MassData(m::Float64)
@@ -135,22 +132,4 @@ end
 function init_Lugre(mus, muk)
       vec = sa.MVector{3, Float64}(zeros(3))
       lugre = LuGre( vec, deepcopy(vec), deepcopy(vec), deepcopy(vec), mus, muk )
-end
-#################################################################################
-# Init funktiot kappaleille
-# Luodaan kappale, jolla on n,k pistettä ja pituus w
-function init_body_empty(n::T1, k::T1, m::T2, mus::T2, muk::T2) where {T1<:Int64, T2<:Float64}
-      coords = init_Coords(n, k)
-      md = init_MassData(m)
-      sv = init_StateVariables()
-      dv = init_Derivates()
-      aux = init_Aux()
-      f = init_Voimat()
-      knt = init_PenMethod()
-      kd = init_Lugre(mus, muk)
-      body_empty = RigidBody( coords, md, sv, dv, aux, f, knt, kd )
-
-      rotmat!(body_empty.aux.R, body_empty.sv.q)
-      inverse!(body_empty.aux.R_inv, body_empty.aux.R)
-      return body_empty
 end

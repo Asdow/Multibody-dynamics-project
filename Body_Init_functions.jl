@@ -1,39 +1,28 @@
 # Functions used to initialize the different bodies
 #######################################
-# Laskee sylinterin R_sektorin & Θ_sektorin.
-function func_sektorit_cylinder!(R_sektori::AbstractArray, Θ_sektori::AbstractArray, n::Integer, k::Integer, Radius::AbstractFloat)
-    @simd for j in range(1,k)
-        # Yhden sektorin kulma
-        #Θ_sektori = 2*pi / n
-        # Jaetaan profiili n:ään pisteeseen
-        @simd for i in range(1,n+1)
-            @inbounds R_sektori[i,j] = Radius# * (rand(89:105)/100)
-            @inbounds Θ_sektori[i] = (2*pi / n) * (i-1)
-        end
-    end
-
-    # Muokataan profiilin datan alkupisteitä, jotta plottauksessa profiili ei ole aukinainen
-    @simd for i in range(1,k)
-        @inbounds R_sektori[n+1,i] = copy(R_sektori[1,i])
-    end
-
-    return nothing
-end
-# Laskee sylinterin lokaalit karteesiset koordinaatit
-function func_XYZ_cylinder_rigidbody!(XYZ, R_sektori, Θ_sektori, n, k, w)
-      local wi = w / (k-1.0)
-
-      @simd for j in range(1,k)
-            @simd for i in 1:(n+1)
-                  @inbounds XYZ[i,j][1],XYZ[i,j][2] = func_cartesis(R_sektori[i,j], Θ_sektori[i])
-                  if j == 1
-                        @inbounds XYZ[i,j][3] = -w/2.0
-                  else
-                        @inbounds XYZ[i,j][3] = XYZ[i,1][3] + wi*(j-1.0)
-                  end
-            end
-      end
-      return nothing
+"""
+    create_cube(x::T1, y::T1, z::T1, m::T2, mus::T2, muk::T2) where {T1<:Real, T2<:Float64}
+Create a cuboid shaped body. Sides are x,y,z, mass is m and friction coefficients are mus and muk.
+"""
+function create_cube(x::T1, y::T1, z::T1, m::T2, mus::T2, muk::T2) where {T1<:Real, T2<:Float64}
+      sh = init_shape(x, y, z)
+      md = init_MassData(m)
+      sv = init_StateVariables()
+      dv = init_Derivates()
+      aux = init_Aux()
+      f = init_Voimat()
+      knt = init_PenMethod()
+      kd = init_Lugre(mus, muk)
+      body = RigidBody( sh, md, sv, dv, aux, f, knt, kd )
+      AABBb!(body)
+      rotmat!(body.aux.R, body.sv.q)
+      inverse!(body.aux.R_inv, body.aux.R)
+      # Moment of inertias
+      MoI_cube!(body.md.Jb, body.md.m, x, y, z)
+      inverse!(body.md.Jb_inv, body.md.Jb)
+      Jb_inv2world!(body)
+      Jb2world!(body)
+      return body
 end
 """
     cube_coords!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}

@@ -15,7 +15,7 @@ end
 Goes through body's local coords and updates its local AABB.
 """
 function AABBb!(body::Kappale)
-      AABB!(body.coords.AABBb, body.coords.XYZb)
+      AABB!(body.sh.AABBb, body.sh.body.vertices)
       return nothing
 end
 """
@@ -23,21 +23,27 @@ end
 Goes through body's global coords and updates its global AABB.
 """
 function AABB!(body::Kappale)
-      AABB!(body.coords.AABB, body.coords.XYZ)
+      xyz = [point3D{Float64}(zeros(Float64,3)) for i in 1:size(body.sh.body.vertices,1)];
+      body2world!(xyz, body.sv.x, body.aux.R, body.sh.body.vertices)
+      AABB!(body.sh.AABB, xyz)
       return nothing
 end
 """
-    AABB!(bb::AABB, XYZ::Array{point3D{T}}) where T
+    AABB!(bb::AABB, XYZ::Array{gt.Point3{T}}) where T
 Goes through array's points and calculates the AABB inplace.
 """
-function AABB!(bb::AABB, XYZ::Array{point3D{T}}) where T
+function AABB!(bb::AABB, XYZ)
       @inbounds begin
+            # Set first vertex' coords as AABB
+            bb.min[:] = XYZ[1][:]
+            bb.max[:] = XYZ[1][:]
             for i in eachindex(XYZ)
                   for j in 1:3
                         if XYZ[i][j] > bb.max[j]
-                              bb.max[j] = XYZ[i][j]
-                        elseif XYZ[i][j] < bb.min[j]
-                              bb.min[j] = XYZ[i][j]
+                              bb.max[j] = eltype(bb.max)(XYZ[i][j])
+                        end
+                        if XYZ[i][j] < bb.min[j]
+                              bb.min[j] = eltype(bb.max)(XYZ[i][j])
                         end
                   end
             end
@@ -49,7 +55,7 @@ end
 Returns true if two bodies' AABBs overlap.
 """
 function AABBOverlap(a::Kappale, b::Kappale)
-      AABBOverlap(a.coords.AABB, b.coords.AABB)
+      AABBOverlap(a.sh.AABB, b.sh.AABB)
 end
 """
     AABBOverlap(a::AABB, b::AABB)

@@ -139,16 +139,13 @@ end
 
 """
     cube_vis(body::Kappale)
-Creates a cube visualization. Only temporary until GeometryTypes package is used.
+Creates a body's visualization. Returns a GLAbstraction.Context
 """
-function cube_vis(body::Kappale)
+function body_vis(body::Kappale)
       # Array that holds the body's visualizations
       bodyvis = gla.Context{gla.DeviceUnit}[];
-      poss = fposs(body); # body points local position
-      spheres = gl.visualize((gt.Sphere{Float32}(gt.Point3f0(0.0), 0.05f0), poss), boundingbox=nothing);
-      lines = gl.visualize(poss, :linesegment, thickness=0.5f0, indices=indexointi_cube(body), boundingbox=nothing);
-      push!(bodyvis, spheres)
-      push!(bodyvis, lines)
+      push!(bodyvis, gl.visualize(body.sh.body, :lines, thickness = 1f0, color = col.RGBA(1f0, 0f0, 0f0, 0.8f0), boundingbox=nothing))
+      # push!(bodyvis, gl.visualize(body.sh.body, boundingbox=nothing))
       # body reference coordinate axes
       push!(bodyvis, axes(0.8f0, 1.0f0))
       # transform all visualizations to body's global location and orientation

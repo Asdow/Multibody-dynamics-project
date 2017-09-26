@@ -23,18 +23,6 @@ function fill_rigidbody_cylinder!(kpl::RigidBody, Radius::Float64, ρ::Float64)
       return nothing
 end
 
-# Creates a cuboid that's sides are xl, yl and zl.
-function create_cube!(body::RigidBody, xl::Float64, yl::Float64, zl::Float64)
-      # Päivitetään lokaali karteesinen koordinaatisto vastaamaan kuution muotoa
-      cube_coords!(body.coords.XYZb, xl, yl, zl)
-      AABBb!(body)
-      # Moment of inertias
-      MoI_cube!(body.md.Jb, body.md.m, xl, yl, zl)
-      inverse!(body.md.Jb_inv, body.md.Jb)
-      Jb_inv2world!(body)
-      Jb2world!(body)
-      return nothing
-end
 
 # Creates a Ground plane that is w wide and l deep and at height h from global origin
 function create_plane(w, l, h)
