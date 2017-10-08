@@ -136,7 +136,6 @@ function transformation(kpl::Kappale)
     t[1], t[2], t[3], T1,
     )
 end
-
 """
     cube_vis(body::Kappale)
 Creates a body's visualization. Returns a GLAbstraction.Context
@@ -144,8 +143,8 @@ Creates a body's visualization. Returns a GLAbstraction.Context
 function body_vis(body::Kappale)
       # Array that holds the body's visualizations
       bodyvis = gla.Context{gla.DeviceUnit}[];
-      push!(bodyvis, gl.visualize(body.sh.body, :lines, thickness = 1f0, color = col.RGBA(1f0, 0f0, 0f0, 0.8f0), boundingbox=nothing))
-      # push!(bodyvis, gl.visualize(body.sh.body, boundingbox=nothing))
+      push!(bodyvis, gl.visualize(body.sh.mesh, :lines, thickness = 1f0, color = col.RGBA(1f0, 0f0, 0f0, 0.8f0), boundingbox=nothing))
+      # push!(bodyvis, gl.visualize(body.sh.mesh, boundingbox=nothing))
       # body reference coordinate axes
       push!(bodyvis, axes(0.8f0, 1.0f0))
       # transform all visualizations to body's global location and orientation

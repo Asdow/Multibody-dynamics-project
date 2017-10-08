@@ -12,7 +12,7 @@ mQuaternion(a::Vector) = mQuaternion(a[1], a[2], a[3], a[4])
     rotmat!(R::StaticArrays.MArray{Tuple{3,3},Float64,2,9}, q::mQuaternion)
 Calculates the rotation matrix based on quaternions.
 """
-function rotmat!(R::StaticArrays.MArray{Tuple{3,3},Float64,2,9}, q::mQuaternion)
+function rotmat!(R::StaticArrays.MArray{Tuple{3,3},T,2,9}, q::mQuaternion) where {T<:Real}
       @inbounds begin
             e1_toiseen = q.s*q.s
             e2_toiseen = q.v1*q.v1
@@ -39,7 +39,6 @@ function rotmat!(R::StaticArrays.MArray{Tuple{3,3},Float64,2,9}, q::mQuaternion)
       end
       return nothing
 end
-
 """
     q_vel!(q̇::mQuaternion, q::mQuaternion, ωs)
 Calculates q̇ inplace.
@@ -60,8 +59,55 @@ function q!(q::mQuaternion, q̇::mQuaternion, delta_t::Real)
       end
       return nothing
 end
-
-
+"""
+    Gmat(q::mQuaternion)
+Calculates the Jacobian matrix for unit quaternion so that q̇ = G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body.
+"""
+function Gmat(q::mQuaternion)
+      G = sa.MMatrix{4,3, Float64}(zeros(4,3))
+      @inbounds begin
+            G[1,1] = -q.v1
+            G[2,1] = q.s
+            G[3,1] = -q.v3
+            G[4,1] = q.v2
+            G[1,2] = -q.v2
+            G[2,2] = q.v3
+            G[3,2] = q.s
+            G[4,2] = -q.v1
+            G[1,3] = -q.v3
+            G[2,3] = -q.v2
+            G[3,3] = q.v1
+            G[4,3] = q.s
+            for i in eachindex(G)
+                  G[i] *= 0.5
+            end
+      end
+      return G
+end
+"""
+    Gmat!(G, q::mQuaternion)
+Calculates the Jacobian matrix for unit quaternion so that q̇ = G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body. Updates G in place.
+"""
+function Gmat!(G, q::mQuaternion)
+      @inbounds begin
+            G[1,1] = -q.v1
+            G[2,1] = q.s
+            G[3,1] = -q.v3
+            G[4,1] = q.v2
+            G[1,2] = -q.v2
+            G[2,2] = q.v3
+            G[3,2] = q.s
+            G[4,2] = -q.v1
+            G[1,3] = -q.v3
+            G[2,3] = -q.v2
+            G[3,3] = q.v1
+            G[4,3] = q.s
+            for i in eachindex(G)
+                  G[i] *= 0.5
+            end
+      end
+      return nothing
+end
 # Base functions
 import Base: show, abs, normalize!, *
 

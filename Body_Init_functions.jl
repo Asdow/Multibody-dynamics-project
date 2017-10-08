@@ -1,17 +1,17 @@
 # Functions used to initialize the different bodies
 #######################################
 """
-    create_cube(x::T1, y::T1, z::T1, m::T2, mus::T2, muk::T2) where {T1<:Real, T2<:Float64}
+    create_cube(x::T, y::T, z::T, m::T, mus::T, muk::T) where {T<:Real}
 Create a cuboid shaped body. Sides are x,y,z, mass is m and friction coefficients are mus and muk.
 """
-function create_cube(x::T1, y::T1, z::T1, m::T2, mus::T2, muk::T2) where {T1<:Real, T2<:Float64}
+function create_cube(x::T, y::T, z::T, m::T, mus::T, muk::T) where {T<:Real}
       sh = init_shape(x, y, z)
       md = init_MassData(m)
-      sv = init_StateVariables()
-      dv = init_Derivates()
-      aux = init_Aux()
-      f = init_Voimat()
-      knt = init_PenMethod()
+      sv = init_StateVariables(T)
+      dv = init_Derivatives(T)
+      aux = init_Aux(T)
+      f = init_Voimat(T)
+      knt = init_PenMethod(T)
       kd = init_Lugre(mus, muk)
       body = RigidBody( sh, md, sv, dv, aux, f, knt, kd )
       AABBb!(body)

@@ -7,6 +7,7 @@ include("Globals.jl")
 include("apufunktiot.jl")
 include("Quaternions.jl")
 include("Datatypes.jl")
+include("Particles.jl")
 include("Visualization.jl")
 include("Body_Init_functions.jl")
 include("Moment_of_inertia_functions.jl")
@@ -18,8 +19,8 @@ include("Dynamics_functions.jl")
 function test()
       body = create_cube(1.0,1.0,1.0, 15.0, 0.6, 0.45);
       # set location and orientation to random
-      body.sv.x[:] = rand(3)
-      body.sv.q[:] = rand(4)
+      body.sv.x[:] = rand(3);
+      body.sv.q[:] = rand(4);
       normalize!(body.sv.q)
       rotmat!(body)
       # Create plane so body doesn't fall into emptiness
@@ -46,5 +47,16 @@ function test()
             gl.set_arg!(bodyvis, :model, transformation(body))
             t += delta_t;
       end
+      return nothing
+end
+
+function testparticle()
+      ps = ParticleSys([init_particle(rand()) for i in 1:10], 10)
+      for i in 1:ps.n
+            ps.p[i].x[:] = rand(3)
+      end
+      window = init_screen();
+      origo = origin();
+
       return nothing
 end

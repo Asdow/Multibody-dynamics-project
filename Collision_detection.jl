@@ -15,7 +15,7 @@ end
 Goes through body's local coords and updates its local AABB.
 """
 function AABBb!(body::Kappale)
-      AABB!(body.sh.AABBb, body.sh.body.vertices)
+      AABB!(body.sh.AABBb, body.sh.mesh.vertices)
       return nothing
 end
 """
@@ -23,8 +23,8 @@ end
 Goes through body's global coords and updates its global AABB.
 """
 function AABB!(body::Kappale)
-      xyz = [point3D{Float64}(zeros(Float64,3)) for i in 1:size(body.sh.body.vertices,1)];
-      body2world!(xyz, body.sv.x, body.aux.R, body.sh.body.vertices)
+      xyz = [point3D{Float64}(zeros(Float64,3)) for i in 1:size(body.sh.mesh.vertices,1)];
+      body2world!(xyz, body.sv.x, body.aux.R, body.sh.mesh.vertices)
       AABB!(body.sh.AABB, xyz)
       return nothing
 end
@@ -35,8 +35,10 @@ Goes through array's points and calculates the AABB inplace.
 function AABB!(bb::AABB, XYZ)
       @inbounds begin
             # Set first vertex' coords as AABB
-            bb.min[:] = XYZ[1][:]
-            bb.max[:] = XYZ[1][:]
+            for i in 1:3
+                  bb.min[i] = eltype(bb.max)(XYZ[1][i])
+                  bb.max[i] = eltype(bb.max)(XYZ[1][i])
+            end
             for i in eachindex(XYZ)
                   for j in 1:3
                         if XYZ[i][j] > bb.max[j]

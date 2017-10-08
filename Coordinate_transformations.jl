@@ -10,7 +10,7 @@ end
 # Funktio joka muuttaa karteesiset koordinaatit polaariseen koordinaatistoon
 function cartesis2polar(X::Float64, Y::Float64)
     R = sqrt(X^2 + Y^2)
-    Θ = atan(Y/X)
+    Θ = atan2(Y/X)
     return R,Θ
 end
 
