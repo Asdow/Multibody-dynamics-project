@@ -46,6 +46,7 @@ function test()
 
             gl.set_arg!(bodyvis, :model, transformation(body))
             t += delta_t;
+            sleep(0.001);
       end
       return nothing
 end

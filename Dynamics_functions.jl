@@ -12,10 +12,12 @@ function clear_forces!(kpl::Kappale)
 end
 
 """
-    omega_skew!(ωskew, ω)
+    skew4!(ωskew, ω)
 Calculates 4x4 skew symmetric matrix in global coordinate frame
 """
-function omega_skew!(ωskew, omega)
+function skew4!(ωskew, omega)
+    @assert size(ωskew) == (4,4)
+    @assert size(omega) == (3,)
     @inbounds begin
           ωskew[1,1] = 0.0
           ωskew[2,1] = omega[1]
@@ -65,7 +67,7 @@ function body_rotation!(kpl::Kappale, delta_t::Float64)
             # Angular velocity in global frame
             A_mul_B!(kpl.aux.ω, kpl.md.J_inv, kpl.sv.L)
             # Skew symmetric matrix
-            omega_skew!(kpl.aux.ωs, kpl.aux.ω)
+            skew4!(kpl.aux.ωs, kpl.aux.ω)
             # Quaternions time derivative
             q_vel!(kpl.dv.q̇, kpl.sv.q, kpl.aux.ωs)
             # Update & normalize Euler parameters

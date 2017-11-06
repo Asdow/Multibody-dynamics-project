@@ -41,12 +41,11 @@ function rotmat!(R::StaticArrays.MArray{Tuple{3,3},T,2,9}, q::mQuaternion) where
 end
 """
     q_vel!(q̇::mQuaternion, q::mQuaternion, ωs)
-Calculates q̇ inplace.
+Calculates q̇ inplace. q̇ = 1/2 * ω̃*q = 1/2 * cross(ω,q)
 """
 function q_vel!(q̇::mQuaternion, q::mQuaternion, ωs)
-      for i in 1:4
-            @inbounds q̇[i] = 0.5*(ωs[i,1]*q[1] + ωs[i,2]*q[2] + ωs[i,3]*q[3] + ωs[i,4]*q[4])
-      end
+      A_mul_B!(q̇, ωs, q)
+      q̇ .*= 0.5
       return nothing
 end
 """
@@ -61,7 +60,7 @@ function q!(q::mQuaternion, q̇::mQuaternion, delta_t::Real)
 end
 """
     Gmat(q::mQuaternion)
-Calculates the Jacobian matrix for unit quaternion so that q̇ = G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body.
+Calculates the Jacobian matrix for unit quaternion so that q̇ = 1/2 * G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body.
 """
 function Gmat(q::mQuaternion)
       G = sa.MMatrix{4,3, Float64}(zeros(4,3))
@@ -78,15 +77,12 @@ function Gmat(q::mQuaternion)
             G[2,3] = -q.v2
             G[3,3] = q.v1
             G[4,3] = q.s
-            for i in eachindex(G)
-                  G[i] *= 0.5
-            end
       end
       return G
 end
 """
     Gmat!(G, q::mQuaternion)
-Calculates the Jacobian matrix for unit quaternion so that q̇ = G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body. Updates G in place.
+Calculates the Jacobian matrix for unit quaternion so that q̇ = 1/2 * G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body. Updates G in place.
 """
 function Gmat!(G, q::mQuaternion)
       @inbounds begin
@@ -102,9 +98,6 @@ function Gmat!(G, q::mQuaternion)
             G[2,3] = -q.v2
             G[3,3] = q.v1
             G[4,3] = q.s
-            for i in eachindex(G)
-                  G[i] *= 0.5
-            end
       end
       return nothing
 end
