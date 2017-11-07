@@ -36,6 +36,16 @@ end
 import Base.eltype
 eltype(body::RigidBody2{T}) where {T} = T
 eltype(T2::Type{RigidBody2{T}}) where {T} = T
+mutable struct RBodySystem{T<:Real}
+    bodies::Array{RigidBody2{T},1} # A list of bodies
+    nb::Int64 # Number of bodies
+    t::Float64 # time
+end
+function init_RSys(bodies::Array{RigidBody2{T},1}) where {T}
+    Rsys = RBodySystem(bodies, length(bodies), 0.0)
+end
+import Base.length
+length(a::RBodySystem) = a.nb
 
 function testicube(x::T, y::T, z::T, m::T) where {T<:Real}
       sh = init_shape(x, y, z)
@@ -105,13 +115,15 @@ function sysM(bodies::Array{RigidBody2{T},1}) where {T<:Real}
     nb = length(bodies)
     S = 6*nb;
     M = zeros(T,S,S)
-    sysMf!(M, i, bodies[i].md.m , bodies[i].md.J, nb)
+    for i in 1:nb
+        sysMf!(M, bodies[i].md.m , bodies[i].md.J, i)
+    end
     return M
 end
 function sysM!(M, bodies::Array{RigidBody2{T},1}) where {T}
     nb = length(bodies)
     for i in 1:nb
-        sysMf!(M, i, bodies[i].md.m , bodies[i].md.J)
+        sysMf!(M, bodies[i].md.m, bodies[i].md.J, i)
     end
     return nothing
 end
@@ -120,48 +132,60 @@ function sysW(bodies::Array{RigidBody2{T},1}) where {T}
     S = 6*nb;
     M = zeros(T,S,S)
     for i in 1:nb
-        sysMf!(M, i, bodies[i].md.m_inv , bodies[i].md.J_inv)
+        sysMf!(M, bodies[i].md.m_inv, bodies[i].md.J_inv, i)
     end
-    return M
+    Ms = sa.MMatrix{size(M,1), size(M,2), Float64, size(M,1)*size(M,2)}(M);
+    return Ms
 end
 function sysW!(M, bodies::Array{RigidBody2{T},1}) where {T}
     nb = length(bodies)
     for i in 1:nb
-        sysMf!(M, i, bodies[i].md.m_inv , bodies[i].md.J_inv)
+        sysMf!(M, bodies[i].md.m_inv, bodies[i].md.J_inv, i)
+    end
+    return nothing
+end
+function sysWJ!(M, bodies::Array{RigidBody2{T},1}) where {T}
+    nb = length(bodies)
+    for i in 1:nb
+        sysMfJ!(M, bodies[i].md.J_inv, i)
     end
     return nothing
 end
 
-function sysMf!(M, i, m , J, nb)
-    for i in 1:nb
-        j = 1 + (6*(i-1))
-        M[j,j] = m
-        M[j+1,j+1] = m
-        M[j+2,j+2] = m
-        kk = 4 + (6*(i-1))
-        for l in 0:2, ll in 0:2
-            o = kk+l
-            oo = kk+ll
-            M[o,oo] = J[1+l, 1+ll]
-        end
+function sysMf!(M, m, J, i)
+    j = 1 + (6*(i-1))
+    M[j,j] = m
+    M[j+1,j+1] = m
+    M[j+2,j+2] = m
+    kk = 4 + (6*(i-1))
+    for l in 0:2, ll in 0:2
+        o = kk+l
+        oo = kk+ll
+        M[o,oo] = J[1+l, 1+ll]
+    end
+    return nothing
+end
+function sysMfJ!(M, J, i)
+    kk = 4 + (6*(i-1))
+    for l in 0:2, ll in 0:2
+        o = kk+l
+        oo = kk+ll
+        M[o,oo] = J[1+l, 1+ll]
     end
     return nothing
 end
 
 function testi(Qe, bodies)
-    stp = 1000
+    stp = 1000000
     @time for i in 1:stp
         Qe!(Qe, bodies)
     end
-    # @time for i in 1:stp
-    #     translation2!(bodies)
-    # end
+    @time for i in 1:stp
+        Qe2!(Qe, bodies)
+    end
     return nothing
 end
-function foo(vektori)
-    @time normalize!(vektori)
-    return nothing
-end
+
 function translation!(body::RigidBody2{T}) where {T}
     body.ddv.a[:] = body.f.F.*body.md.m_inv
     body.dv.ẋ[:] += body.ddv.a .* Δt
@@ -200,8 +224,9 @@ function rotation!(bodies::Array{RigidBody2{T},1}) where {T}
 end
 
 function test()
-    bodies = [testicube(ones(3)..., 15.0) for i in 1:3];
-    nb = length(bodies)
+    Rsys = init_RSys([testicube(ones(3)..., 15.0) for i in 1:5]);
+    nb = length(Rsys);
+    bodies = Rsys.bodies;
     # set location and orientation to random
     randomize!(bodies)
 
@@ -213,47 +238,31 @@ function test()
     gl._view(bodyvis, window, camera=:perspective);
 
     sleep(1)
-    t = 0.0;
     gv = sa.SVector{3,Float64}(1.0,2.0,3.0);
     # EOMs
     qddot = sa.MVector{6*nb,Float64}(zeros(6*nb));
     Qe = sa.MVector{6*nb,Float64}(zeros(6*nb));
     W = sysW(bodies);
-    while t < simTime
-        clear_forces!(body);
+    while Rsys.t < simTime
+        clear_forces!(bodies);
         # vecadd!(body.f.F, g, body.md.m)
-        if t < 1.0
+        if Rsys.t < 1.0
             for i in 1:nb
                 vecadd!(bodies[i].f.T, gv, 1.0)
             end
         end
-        # translation!(bodies)
-        # rotation!(bodies)
+        translation!(bodies)
+        rotation!(bodies)
         #-------------------
         # alternative version
-        sysW!(W, bodies)
-        Qe!(Qe, bodies)
-        A_mul_B!(qddot, W, Qe)
-        qddot2bodies!(bodies, qddot)
-        for i in 1:nb
-            bodies[i].dv.ẋ[:] += bodies[i].ddv.a .* Δt
-            bodies[i].sv.x[:] += bodies[i].dv.ẋ .* Δt
-            bodies[i].dv.ω[:] += bodies[i].ddv.α .* Δt
-            skew4!(bodies[i].aux.ωs, bodies[i].dv.ω)
-            # Quaternions time derivative
-            q_vel!(bodies[i].dv.q̇, bodies[i].sv.q, bodies[i].aux.ωs)
-            # Update & normalize Euler parameters
-            bodies[i].sv.q[:] += bodies[i].dv.q̇ .* Δt
-            normalize!(bodies[i].sv.q);
-            # Update Rotation matrices
-            rotmat!(bodies[i].aux.R, bodies[i].sv.q)
-            inverse!(bodies[i].aux.R_inv, bodies[i].aux.R)
-            # Update mass moment of inertias in global frame
-            Jb2world!(bodies[i])
-            Jb_inv2world!(bodies[i])
-        end
+        # sysWJ!(W, bodies)
+        # Qe!(Qe, bodies)
+        # A_mul_B!(qddot, W, Qe)
+        # qddot2bodies!(bodies, qddot)
+        # semiEuler(bodies, nb)
+
         body_vis!(bodyvis, bodies)
-        t += Δt;
+        Rsys.t += Δt;
         sleep(0.001);
     end
     return nothing
@@ -306,28 +315,33 @@ function qddot2bodies!(bodies, qddot)
     return nothing
 end
 
-function tesiti(bodies)
+function tesiti(bodies, nb)
     qddot = sa.MVector{6*nb,Float64}(zeros(6*nb));
     Qe = sa.MVector{6*nb,Float64}(zeros(6*nb));
     W = sysW(bodies);
-    stp = 1
+    # Ws = sa.MMatrix{size(W,1), size(W,2), Float64, size(W,1)*size(W,2)}(W);
+    stp = 10000
     @time for i in 1:stp
         translation!(bodies)
         rotation!(bodies)
     end
     @time for l in 1:stp
-        sysW!(W, bodies)
+        sysWJ!(W, bodies)
         Qe!(Qe, bodies)
         A_mul_B!(qddot, W, Qe)
         qddot2bodies!(bodies, qddot)
-        for i in 1:nb
-            @inbounds semiEuler(bodies[i])
-        end
+        semiEuler(bodies, nb)
     end
     return nothing
 end
 
-function semiEuler(body)
+function semiEuler(bodies, nb)
+    for i in 1:nb
+        @inbounds semiEuler(bodies[i])
+    end
+    return nothing
+end
+function semiEuler(body::RigidBody2{T}) where {T}
     body.dv.ẋ[:] += body.ddv.a .* Δt
     body.sv.x[:] += body.dv.ẋ .* Δt
     body.dv.ω[:] += body.ddv.α .* Δt

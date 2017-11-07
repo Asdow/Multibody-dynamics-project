@@ -1,14 +1,20 @@
 # Functions for the rigid body dynamics
 """
-    clear_forces!(kpl::Kappale)
+    clear_forces!(kpl::T) where {T<:Kappale}
 Clears body's forces.
 """
-function clear_forces!(kpl::Kappale)
-      fill!(kpl.f.F, 0.0);
-      fill!(kpl.f.Fb, 0.0);
-      fill!(kpl.f.T, 0.0);
-      fill!(kpl.f.Tb, 0.0);
-      return nothing
+function clear_forces!(kpl::T) where {T<:Kappale}
+    fill!(kpl.f.F, 0.0);
+    fill!(kpl.f.Fb, 0.0);
+    fill!(kpl.f.T, 0.0);
+    fill!(kpl.f.Tb, 0.0);
+    return nothing
+end
+function clear_forces!(bodies::Array{T,1}) where {T<:Kappale}
+    for i in 1:length(bodies)
+        clear_forces!(bodies[i])
+    end
+    return nothing
 end
 
 """
