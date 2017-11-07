@@ -34,7 +34,8 @@ end
 Laskee a + b*c ja tallentaa sen vektoriin a. Vektorien pituuksien pitää olla 3.
 """
 function vecadd!(a, b, c::Real)
-      for i in 1:3
+      l = length(a)
+      for i in 1:l
             @inbounds a[i] += b[i]*c
       end
       return nothing
@@ -44,7 +45,8 @@ end
 Laskee b*c ja tallentaa sen vektoriin a. Vektorien pituuksien pitää olla 3.
 """
 function vecadd2!(a, b, c::Real)
-      for i in 1:3
+      l = length(a)
+      for i in 1:l
             @inbounds a[i] = b[i]*c
       end
       return nothing

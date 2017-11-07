@@ -42,10 +42,10 @@ function test()
       while t < simTime
             clear_forces!(body);
             vecadd!(body.f.F, g, body.md.m)
-            body_dynamics!(body, delta_t)
+            body_dynamics!(body, Δt)
 
             gl.set_arg!(bodyvis, :model, transformation(body))
-            t += delta_t;
+            t += Δt;
             sleep(0.001);
       end
       return nothing

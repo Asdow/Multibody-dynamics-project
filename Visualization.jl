@@ -137,7 +137,7 @@ function transformation(kpl::Kappale)
     )
 end
 """
-    cube_vis(body::Kappale)
+    body_vis(body::Kappale)
 Creates a body's visualization. Returns a GLAbstraction.Context
 """
 function body_vis(body::Kappale)
@@ -150,6 +150,24 @@ function body_vis(body::Kappale)
       # transform all visualizations to body's global location and orientation
       gl.set_arg!(bodyvis, :model, transformation(body))
       return bodyvis
+end
+"""
+    body_vis!(bodyvis::Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1}, body::T) where {T<:Kappale}
+Updates a body's visualization inplace.
+"""
+function body_vis!(bodyvis::Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1}, body::T) where {T<:Kappale}
+    gl.set_arg!(bodyvis, :model, transformation(body))
+    return nothing
+end
+"""
+    body_vis!(bodyvis::Array{Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1},1}, bodies::Array{T,1}) where {T<:Kappale}
+Updates bodies' visualizations inplace.
+"""
+function body_vis!(bodyvis::Array{Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1},1}, bodies::Array{T,1}) where {T<:Kappale}
+    for i in 1:length(bodies)
+        body_vis!(bodyvis[i], bodies[i])
+    end
+    return nothing
 end
 """
     origin()

@@ -107,12 +107,16 @@ import Base: show, abs, normalize!, *
 function show(io::IO, q::mQuaternion)
       print(io, "scalar: ",q.s, " vector: ",q.v1, "i ", q.v2, "j ", q.v3, "k")
 end
+
 abs(q::mQuaternion) = sqrt(q.s*q.s + q.v1*q.v1 + q.v2*q.v2 + q.v3*q.v3)
+
 function normalize!(q::mQuaternion)
-    pituus = abs(q)
-    for i in 1:4
-        @inbounds q[i] = q[i]/pituus
-    end
+      pituus = abs(q)
+      pinv = inv(pituus)
+      q.s *= pinv
+      q.v1 *= pinv
+      q.v2 *= pinv
+      q.v3 *= pinv
     return nothing
 end
 
