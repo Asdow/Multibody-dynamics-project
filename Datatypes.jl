@@ -81,7 +81,7 @@ struct AuxValues{T<:Real}
       ωs::sa.MArray{Tuple{4,4}, T, 2, 16} # Skew symmetric matrix
 end
 function init_Aux(T)
-      Jb = sa.MArray{Tuple{3,3},T}(zeros(T,3,3))
+      Jb = sa.MArray{Tuple{3,3},T}(eye(T,3))
       Jb2 = sa.MArray{Tuple{4,4},T}(zeros(T,4,4))
       aux = AuxValues( Jb, deepcopy(Jb), Jb2 )
 end
@@ -90,7 +90,7 @@ struct Forces{T<:Real}
       T::sa.MVector{3,T} # Moments effecting the body in global coordinates
 end
 function init_Forces(T)
-      vec = sa.MVector{3, T}(zeros(T,3))
+      vec = sa.MVector{3,T}(zeros(T,3))
       forces = Forces( vec, deepcopy(vec) )
 end
 struct PenaltyMethod{T<:Real}
@@ -125,6 +125,9 @@ struct RigidBody{T<:Real} <: Kappale
       knt::PenaltyMethod{T}
       kd::LuGre{T}
 end
+import Base.eltype
+eltype(body::RigidBody{T}) where {T} = T
+eltype(T2::Type{RigidBody{T}}) where {T} = T
 
 mutable struct RBodySystem{T<:Real}
     bodies::Array{RigidBody{T},1} # A list of bodies
@@ -136,3 +139,23 @@ function init_RSys(bodies::Array{RigidBody{T},1}) where {T}
 end
 import Base.length
 length(a::RBodySystem) = a.nb
+eltype(a::RBodySystem{T}) where {T} = T
+eltype(a::Type{RBodySystem{T}}) where {T} = T
+
+function randomize!(body::T) where {T<:Kappale}
+    body.sv.x[:] = rand(3).*3+rand(3);
+    body.sv.q[:] = rand(4);
+    normalize!(body.sv.q)
+    rotmat!(body)
+    inverse!(body.aux.R_inv, body.aux.R)
+    Jb2world!(body)
+    Jb_inv2world!(body)
+    return nothing
+end
+function randomize!(bodies, nb=length(bodies))
+    for i in 1:nb
+        randomize!(bodies[i])
+    end
+    return nothing
+end
+randomize!(Rsys::RBodySystem) = randomize!(Rsys.bodies, Rsys.nb)

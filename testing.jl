@@ -15,21 +15,19 @@ include("Solids_functions.jl")
 include("Collision_detection.jl")
 include("Coordinate_transformations.jl")
 include("Dynamics_functions.jl")
+include("EOMs.jl")
 
 function test()
-      body = create_cube(1.0,1.0,1.0, 15.0, 0.6, 0.45);
-      # set location and orientation to random
-      body.sv.x[:] = rand(3);
-      body.sv.q[:] = rand(4);
-      normalize!(body.sv.q)
-      rotmat!(body)
+      Rsys = init_RSys([create_cube(ones(3)..., 15.0, 0.6, 0.45) for i in 1:5]);
+      nb = length(Rsys);
+      bodies = Rsys.bodies;
       # Create plane so body doesn't fall into emptiness
       plane = create_cube(10.0,10.0,0.2, 0.0, 0.6, 0.45);
       plane.sv.x[3] = -3.0;
 
       window = init_screen();
       origo = origin();
-      bodyvis = body_vis(body);
+      bodyvis = [body_vis(bodies[i]) for i in 1:nb];
       planevis = body_vis(plane);
       pop!(planevis); # Remove local CS from plane
 

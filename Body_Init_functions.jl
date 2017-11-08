@@ -11,7 +11,7 @@ function create_cube(x::T, y::T, z::T, m::T, mus::T, muk::T) where {T<:Real}
       dv = init_Derivatives(T)
       ddv = init_SecDerivatives(T)
       aux = init_Aux(T)
-      f = init_Voimat(T)
+      f = init_Forces(T)
       knt = init_PenMethod(T)
       kd = init_Lugre(mus, muk)
       body = RigidBody( sh, md, sv, dv, ddv, aux, f, knt, kd )

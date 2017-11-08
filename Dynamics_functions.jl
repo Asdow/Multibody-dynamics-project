@@ -10,12 +10,13 @@ function clear_forces!(kpl::T) where {T<:Kappale}
     fill!(kpl.f.Tb, 0.0);
     return nothing
 end
-function clear_forces!(bodies::Array{T,1}) where {T<:Kappale}
-    for i in 1:length(bodies)
+function clear_forces!(bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+    for i in 1:nb
         clear_forces!(bodies[i])
     end
     return nothing
 end
+clear_forces!(Rsys::RBodySystem{T}) where {T} = clear_forces!(Rsys.bodies, Rsys.nb)
 
 """
     skew4!(ωskew, ω)
