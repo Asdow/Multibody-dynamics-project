@@ -163,12 +163,13 @@ end
     body_vis!(bodyvis::Array{Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1},1}, bodies::Array{T,1}) where {T<:Kappale}
 Updates bodies' visualizations inplace.
 """
-function body_vis!(bodyvis::Array{Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1},1}, bodies::Array{T,1}) where {T<:Kappale}
-    for i in 1:length(bodies)
+function body_vis!(bodyvis::Array{Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1},1}, bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+    for i in 1:nb
         body_vis!(bodyvis[i], bodies[i])
     end
     return nothing
 end
+body_vis!(bodyvis::Array{Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1},1}, Rsys::RBodySystem) = body_vis!(bodyvis, Rsys.bodies, Rsys.nb)
 """
     origin()
 Draws the global coordinate axes.

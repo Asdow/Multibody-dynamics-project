@@ -1,35 +1,43 @@
 # Datatypes used for the simulation
 ######################################
-# Abstraktityyppi, jota käytetään tyyppien määrittelyssä
-abstract type Kappale end
-#################################################################################
-# Datatyyppien määrittely Kappaleen konkreettisille tyypeille
-mutable struct point3D{T<:Real} <: sa.FieldVector{3, T}
+struct point3D{T<:Real} <: sa.FieldVector{3, T}
     x::T
     y::T
     z::T
 end
+mutable struct mpoint3D{T<:Real} <: sa.FieldVector{3, T}
+    x::T
+    y::T
+    z::T
+end
+abstract type Collshape{T<:Real} end
+struct CollSphere{T} <: Collshape{T}
+    # Region R = { {x,y,z} | (x-c.x)^2 + (y-c.y)^2 + (z-c.z)^2 <= r^2 }
+    # c::point3D{T} # Sphere center. Defined in body local coordinates. If c = zeros(3), it coincides with the reference frame location.
+    r::T
+end
+# Abstraktityyppi, jota käytetään tyyppien määrittelyssä
+abstract type Kappale{T<:Real} end
+#################################################################################
+# Datatyyppien määrittely Kappaleen konkreettisille tyypeille
 mutable struct PMCoeff{T<:Real} <: sa.FieldVector{3, T}
       k::T # Contact stiffness
       c::T # Contact damping
       ki::T # Contact integration stiffness
 end
 struct AABB{T<:Real}
-      min::point3D{T}
-      max::point3D{T}
+      min::mpoint3D{T}
+      max::mpoint3D{T}
 end
 struct Shape{T<:Real}
       # Body shape described as a HomogenousMesh in local coordinates
       mesh::gt.HomogenousMesh{gt.Point{3,Float32},gt.Face{3,gt.OffsetInteger{-1,UInt32}},gt.Normal{3,Float32},Void,Void,Void,Void}
+      # Coll shape
+      coll::Collshape{T}
       # Global space AABB
       AABB::AABB{T}
       # Local space AABB
       AABBb::AABB{T}
-end
-function init_shape(x::T, y::T, z::T) where {T<:Real}
-      body = cube(x, y, z)
-      bb = AABB(point3D(zeros(T,3)), point3D(zeros(T,3)))
-      sh = Shape(body, bb, deepcopy(bb) )
 end
 struct MassData{T<:Real}
       m::T # Mass
@@ -50,13 +58,13 @@ function init_MassData(m::T) where {T<:Real}
       return MD
 end
 struct StateVariables{T<:Real}
-      x::point3D{T} # Reference point location in global coordinates
+      x::mpoint3D{T} # Reference point location in global coordinates
       q::mQuaternion{T} # Euler parameters
 end
 function init_StateVariables(T)
       q = mQuaternion(zeros(T,4))
       q.s = 1.0;
-      sv = StateVariables( point3D(zeros(T,3)), q )
+      sv = StateVariables( mpoint3D(zeros(T,3)), q )
 end
 struct Derivatives{T<:Real}
       ẋ::sa.MVector{3,T} # Reference point velocity in global coordinates
@@ -114,7 +122,7 @@ function init_Lugre(mus::T, muk::T) where {T<:Real}
 end
 #################################################################################
 # Kappaletyyppien määrittely
-struct RigidBody{T<:Real} <: Kappale
+struct RigidBody{T} <: Kappale{T}
       sh::Shape{T}
       md::MassData{T}
       sv::StateVariables{T}

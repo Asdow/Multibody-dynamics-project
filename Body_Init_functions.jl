@@ -26,10 +26,10 @@ function create_cube(x::T, y::T, z::T, m::T, mus::T, muk::T) where {T<:Real}
       return body
 end
 """
-    cube_coords!(XYZ::Array{point3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
+    cube_coords!(XYZ::Array{mpoint3D{Float64},2}, h::T, w::T, l::T) where {T<:Float64}
 Laskee kuution lokaalit karteesiset koordinaatit. Toimii vain jos Arrayn koko on 4x2
 """
-function cube_coords!(XYZ::Array{point3D{Float64},2}, xl::T, yl::T, zl::T) where {T<:Float64}
+function cube_coords!(XYZ::Array{mpoint3D{Float64},2}, xl::T, yl::T, zl::T) where {T<:Float64}
       @assert size(XYZ) == (4,2) "XYZ size != (4,2)"
       n = size(XYZ,1)
       k = size(XYZ,2)
@@ -53,4 +53,29 @@ function cube_coords!(XYZ::Array{point3D{Float64},2}, xl::T, yl::T, zl::T) where
             XYZ[i,2].z = zi
       end
       return nothing
+end
+"""
+    create_sphere(radius::T, m::T, mus::T, muk::T) where {T<:Real}
+Create a sphere shaped body with radius and mass m and friction coefficients are mus and muk.
+"""
+function create_sphere(radius::T, m::T, mus::T, muk::T) where {T<:Real}
+      sh = init_shape(radius)
+      md = init_MassData(m)
+      sv = init_StateVariables(T)
+      dv = init_Derivatives(T)
+      ddv = init_SecDerivatives(T)
+      aux = init_Aux(T)
+      f = init_Forces(T)
+      knt = init_PenMethod(T)
+      kd = init_Lugre(mus, muk)
+      body = RigidBody( sh, md, sv, dv, ddv, aux, f, knt, kd )
+      AABBb!(body)
+      rotmat!(body.aux.R, body.sv.q)
+      inverse!(body.aux.R_inv, body.aux.R)
+      # Moment of inertias
+      MoI_sphere!(body.md.Jb, body.md.m, radius)
+      inverse!(body.md.Jb_inv, body.md.Jb)
+      Jb_inv2world!(body)
+      Jb2world!(body)
+      return body
 end

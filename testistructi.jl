@@ -54,44 +54,6 @@ function testi(Qe, bodies)
     return nothing
 end
 
-function translation!(body::RigidBody{T}) where {T}
-    body.ddv.a[:] = body.f.F.*body.md.m_inv
-    body.dv.ẋ[:] += body.ddv.a .* Δt
-    body.sv.x[:] += body.dv.ẋ .* Δt
-    return nothing
-end
-function translation!(bodies::Array{RigidBody{T},1}, nb=length(bodies)) where {T}
-    for i in 1:nb
-        @inbounds translation!(bodies[i])
-    end
-    return nothing
-end
-translation!(Rsys::RBodySystem) = translation!(Rsys.bodies, Rsys.nb)
-
-function rotation!(body::RigidBody{T}) where {T}
-    body.ddv.α[:] = body.md.J_inv*(body.f.T - cross(body.dv.ω, (body.md.J*body.dv.ω)))
-    body.dv.ω[:] += body.ddv.α .* Δt
-    skew4!(body.aux.ωs, body.dv.ω)
-    # Quaternions time derivative
-    q_vel!(body.dv.q̇, body.sv.q, body.aux.ωs)
-    # Update & normalize Euler parameters
-    body.sv.q[:] += body.dv.q̇ .* Δt
-    normalize!(body.sv.q);
-    # Update Rotation matrices
-    rotmat!(body.aux.R, body.sv.q)
-    inverse!(body.aux.R_inv, body.aux.R)
-    # Update mass moment of inertias in global frame
-    Jb2world!(body)
-    Jb_inv2world!(body)
-    return nothing
-end
-function rotation!(bodies::Array{RigidBody{T},1}, nb=length(bodies)) where {T}
-    for i in 1:nb
-        @inbounds rotation!(bodies[i])
-    end
-    return nothing
-end
-rotation!(Rsys::RBodySystem) = rotation!(Rsys.bodies, Rsys.nb)
 
 function test()
     Rsys = init_RSys([testicube(ones(3)..., 15.0) for i in 1:5]);

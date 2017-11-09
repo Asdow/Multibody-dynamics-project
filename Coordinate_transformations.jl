@@ -37,10 +37,10 @@ function body2world!(XYZ, svx, R, XYZb)
       return nothing
 end
 """
-    body2world!(XYZ::point3D{T}, svx, R, XYZb::point3D{T}) where T
+    body2world!(XYZ::mpoint3D{T}, svx, R, XYZb::mpoint3D{T}) where T
 Transforms a point to world. Saves to XYZ.
 """
-function body2world!(XYZ::point3D{T}, svx, R, XYZb::point3D{T}) where T
+function body2world!(XYZ::mpoint3D{T}, svx, R, XYZb::mpoint3D{T}) where T
           @inbounds A_mul_B!(XYZ, R, XYZb)
           @inbounds XYZ .+= svx
       return nothing

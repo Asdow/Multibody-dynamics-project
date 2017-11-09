@@ -23,7 +23,7 @@ end
 Goes through body's global coords and updates its global AABB.
 """
 function AABB!(body::Kappale)
-      xyz = [point3D{Float64}(zeros(Float64,3)) for i in 1:size(body.sh.mesh.vertices,1)];
+      xyz = [mpoint3D{Float64}(zeros(Float64,3)) for i in 1:size(body.sh.mesh.vertices,1)];
       body2world!(xyz, body.sv.x, body.aux.R, body.sh.mesh.vertices)
       AABB!(body.sh.AABB, xyz)
       return nothing
@@ -64,8 +64,8 @@ end
 Returns true if two AABBs overlap.
 """
 function AABBOverlap(a::AABB, b::AABB)
-      d1 = point3D(zeros(eltype(a.min),3))
-      d2 = point3D(zeros(eltype(a.min),3))
+      d1 = mpoint3D(zeros(eltype(a.min),3))
+      d2 = mpoint3D(zeros(eltype(a.min),3))
       vecminus!(d1, a.min, b.max)
       vecminus!(d2, b.min, a.max)
       if (d1.x > 0.0) || (d1.y > 0.0) || (d1.z > 0.0)

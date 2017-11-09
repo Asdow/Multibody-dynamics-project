@@ -5,9 +5,7 @@ Clears body's forces.
 """
 function clear_forces!(kpl::T) where {T<:Kappale}
     fill!(kpl.f.F, 0.0);
-    fill!(kpl.f.Fb, 0.0);
     fill!(kpl.f.T, 0.0);
-    fill!(kpl.f.Tb, 0.0);
     return nothing
 end
 function clear_forces!(bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
@@ -49,51 +47,78 @@ function skew4!(ωskew, omega)
     return nothing
 end
 """
-    body_translation!(kpl::Kappale, delta_t::Real)
-Calculates body's linear momentum, linear velocity and reference point global location. Updates all three inplace.
+    translation!(body::RigidBody{T}) where {T}
+Calculates body's linear acceleration, velocity and reference point global location. Updates all three inplace.
 """
-function body_translation!(kpl::Kappale, delta_t::Real)
-      @inbounds begin
-            # Linear momentum
-            vecadd!(kpl.sv.P, kpl.f.F, delta_t)
-            # Massakeskipisteen nopeus
-            vecadd2!(kpl.dv.ẋ, kpl.sv.P, kpl.md.m_inv)
-            # Massakeskipisteen asema
-            vecadd!(kpl.sv.x, kpl.dv.ẋ, delta_t)
-      end
-      return nothing
+function translation!(body::RigidBody{T}) where {T}
+    body.ddv.a[:] = body.f.F.*body.md.m_inv
+    body.dv.ẋ[:] += body.ddv.a .* Δt
+    body.sv.x[:] += body.dv.ẋ .* Δt
+    return nothing
 end
-"""
-    body_rotation!(kpl::Kappale, delta_t::Real)
-Calculates body's angular momentum, angular velocity, reference point global orientation. Updates all inplace.
-"""
-function body_rotation!(kpl::Kappale, delta_t::Float64)
-      @inbounds begin
-            # Angular momentum
-            vecadd!(kpl.sv.L, kpl.f.T, delta_t)
-            # Angular velocity in global frame
-            A_mul_B!(kpl.aux.ω, kpl.md.J_inv, kpl.sv.L)
-            # Skew symmetric matrix
-            skew4!(kpl.aux.ωs, kpl.aux.ω)
-            # Quaternions time derivative
-            q_vel!(kpl.dv.q̇, kpl.sv.q, kpl.aux.ωs)
-            # Update & normalize Euler parameters
-            q!(kpl.sv.q, kpl.dv.q̇, delta_t)
-            normalize!(kpl.sv.q);
-            # Update Rotation matrices
-            rotmat!(kpl.aux.R, kpl.sv.q)
-            inverse!(kpl.aux.R_inv, kpl.aux.R)
-            # Update mass moment of inertia inverse in global frame
-            Jb_inv2world!(kpl)
-      end
-      return nothing
+function translation!(bodies::Array{RigidBody{T},1}, nb=length(bodies)) where {T}
+    for i in 1:nb
+        @inbounds translation!(bodies[i])
+    end
+    return nothing
 end
+translation!(Rsys::RBodySystem) = translation!(Rsys.bodies, Rsys.nb)
 """
-    body_dynamics!(kpl::Kappale, delta_t::Float64)
+    rotation!(body::RigidBody{T}) where {T}
+Calculates body's angular acceleration, velocity, euler parameters rate of change, and reference point global orientation. Updates all inplace.
+"""
+function rotation!(body::RigidBody{T}) where {T}
+    body.ddv.α[:] = body.md.J_inv*(body.f.T - cross(body.dv.ω, (body.md.J*body.dv.ω)))
+    body.dv.ω[:] += body.ddv.α .* Δt
+    skew4!(body.aux.ωs, body.dv.ω)
+    # Quaternions time derivative
+    q_vel!(body.dv.q̇, body.sv.q, body.aux.ωs)
+    # Update & normalize Euler parameters
+    body.sv.q[:] += body.dv.q̇ .* Δt
+    normalize!(body.sv.q);
+    # Update Rotation matrices
+    rotmat!(body.aux.R, body.sv.q)
+    inverse!(body.aux.R_inv, body.aux.R)
+    # Update mass moment of inertias in global frame
+    Jb2world!(body)
+    Jb_inv2world!(body)
+    return nothing
+end
+function rotation!(bodies::Array{RigidBody{T},1}, nb=length(bodies)) where {T}
+    for i in 1:nb
+        @inbounds rotation!(bodies[i])
+    end
+    return nothing
+end
+rotation!(Rsys::RBodySystem) = rotation!(Rsys.bodies, Rsys.nb)
+"""
+    dynamics!(kpl::Kappale)
 Calculates body's translation and rotation, and updates position in global frame. Updates all inplace.
 """
-function body_dynamics!(kpl::Kappale, delta_t::Float64)
-      body_translation!(kpl, delta_t)
-      body_rotation!(kpl, delta_t)
+function dynamics!(kpl::Kappale)
+      translation!(kpl)
+      rotation!(kpl)
       return nothing
 end
+function dynamics!(bodies::Array{RigidBody{T},1}, nb=length(bodies)) where {T}
+    for i in 1:nb
+        @inbounds dynamics!(bodies[i])
+    end
+    return nothing
+end
+dynamics!(Rsys::RBodySystem) = dynamics!(Rsys.bodies, Rsys.nb)
+"""
+    gravity!(body::Kappale)
+Calculates a body's gravity force and adds it to its force accumulator.
+"""
+function gravity!(body::Kappale)
+    body.f.F[:] += g.*body.md.m
+    return nothing
+end
+function gravity!(bodies::Array{RigidBody{T},1}, nb=length(bodies)) where {T}
+    for i in 1:nb
+        @inbounds gravity!(bodies[i])
+    end
+    return nothing
+end
+gravity!(Rsys::RBodySystem) = gravity!(Rsys.bodies, Rsys.nb)

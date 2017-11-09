@@ -1,8 +1,8 @@
 # Particle system
 abstract type Partikkeli end
 struct Particle{T<:Real} <: Partikkeli
-      x::point3D{T} # Particle location in global coordinates
-      ẋ::point3D{T} # Particle velocity in global coordinates
+      x::mpoint3D{T} # Particle location in global coordinates
+      ẋ::mpoint3D{T} # Particle velocity in global coordinates
       F::sa.MVector{3,T} # Forces effecting the particle in global coordinates
       m::T # Mass of the particle
 end
@@ -21,6 +21,6 @@ length(p::ParticleSys) = p.n
 Creates a particle with mass m.
 """
 function init_particle(m::T) where {T<:Real}
-      p = Particle(point3D(zeros(T,3)), point3D(zeros(T,3)), sa.MVector{3, T}(zeros(T,3)), m)
+      p = Particle(mpoint3D(zeros(T,3)), mpoint3D(zeros(T,3)), sa.MVector{3, T}(zeros(T,3)), m)
 end
 #particlemsh = gl.GLNormalMesh(gl.loadasset("I:/Julia/sphere_radius0.1.obj"))
