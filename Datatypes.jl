@@ -13,8 +13,8 @@ end
 abstract type Collshape{T<:Real} end
 struct CollSphere{T} <: Collshape{T}
     # Region R = { {x,y,z} | (x-c.x)^2 + (y-c.y)^2 + (z-c.z)^2 <= r^2 }
-    # c::point3D{T} # Sphere center. Defined in body local coordinates. If c = zeros(3), it coincides with the reference frame location.
-    r::T
+    c::point3D{T} # Sphere center. Defined in body local coordinates. If c = zeros(3), it coincides with the reference frame location.
+    r::T # Radius of the sphere.
 end
 # Abstraktityyppi, jota käytetään tyyppien määrittelyssä
 abstract type Kappale{T<:Real} end

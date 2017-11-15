@@ -75,3 +75,23 @@ function AABBOverlap(a::AABB, b::AABB)
       end
       return true
 end
+
+
+"""
+    TestSphereHalfspace(s::CollSphere, p::Plane, b::Kappale)
+Determine whether sphere s intersects the negative halfspace of plane p. Body is needed to transform sphere center location from local coordinates to inertial frame.
+"""
+function TestSphereHalfspace(s::CollSphere, p::Plane, b::Kappale)
+    center = b.sv.x + b.aux.R*s.c # Transform sphere center to world.
+    dist = dot(center, p.normal) - p.d; # Check for intersection.
+    return dist <= s.r
+end
+TestSphereHalfspace(p::Plane, b::Kappale) = TestSphereHalfspace(b.sh.coll, p, b)
+TestSphereHalfspace(b::Kappale, p::Plane) = TestSphereHalfspace(p, b)
+
+function getcollpos(s::CollSphere, p::Plane, b::Kappale)
+    center = b.sv.x + b.aux.R*s.c # Transform sphere center to world.
+    dist = dot(center, p.normal) - p.d; # Check for intersection.
+    point = point3D(center - dist*p.normal)
+end
+getcollpos(b::Kappale, p::Plane) = getcollpos(b.sh.coll, p, b)

@@ -11,9 +11,9 @@ function sphere_mesh(r)
     msh = gl.GLNormalMesh(vertices=vertices, faces=faces)
 end
 """
-    sphere_coll(radius::T) where {T}
+    sphere_coll(radius::T, center = point3D{T}(T(0.0),T(0.0),T(0.0))) where {T<:Real}
 Create a sphere collision shape.
 """
-function sphere_coll(radius::T) where {T}
-    CollSphere(radius)
+function sphere_coll(radius::T, center = point3D{T}(T(0.0),T(0.0),T(0.0))) where {T<:Real}
+    CollSphere(center,radius)
 end

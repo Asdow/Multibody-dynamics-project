@@ -15,6 +15,23 @@ function clear_forces!(bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
     return nothing
 end
 clear_forces!(Rsys::RBodySystem{T}) where {T} = clear_forces!(Rsys.bodies, Rsys.nb)
+"""
+    eval_forces!(kpl::T) where {T<:Kappale}
+Evaluates RBodySystem's forces and adds them to bodies' force accumulators.
+"""
+function eval_forces!(kpl::T) where {T<:Kappale}
+    clear_forces!(kpl)
+    gravity!(kpl)
+    return nothing
+end
+function bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+    for i in 1:nb
+        eval_forces!(bodies[i])
+    end
+    return nothing
+end
+eval_forces!(Rsys::RBodySystem{T}) where {T} = eval_forces!(Rsys.bodies, Rsys.nb)
+
 
 """
     skew4!(ωskew, ω)

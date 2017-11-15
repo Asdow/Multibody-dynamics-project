@@ -18,11 +18,12 @@ include("EOMs.jl")
 
 function test()
     # Rsys = init_RSys([create_cube(ones(3)..., 15.0, 0.6, 0.45) for i in 1:5]);
-    Rsys = init_RSys([create_sphere(1.0, 3.0, 0.6, 0.4) for i in 1:5]);
+    Rsys = init_RSys([create_sphere(1.0, 3.0, 0.6, 0.4) for i in 1:1]);
     nb = length(Rsys);
     bodies = Rsys.bodies;
+    randomize!(Rsys)
     # Create plane so body doesn't fall into emptiness
-    plane = Plane([0.0,0.0, -1.0])
+    plane = Plane([0.0,0.0, 1.0], point3D(0.0, 0.0, -0.33))
 
     window = init_screen();
     origo = origin();
@@ -33,8 +34,7 @@ function test()
 
     sleep(1)
     while Rsys.t < simTime
-        clear_forces!(Rsys);
-        gravity!(Rsys)
+        eval_forces!(Rsys);
         dynamics!(Rsys)
 
         body_vis!(bodyvis, Rsys)
