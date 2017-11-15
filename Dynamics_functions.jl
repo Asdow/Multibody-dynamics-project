@@ -24,7 +24,7 @@ function eval_forces!(kpl::T) where {T<:Kappale}
     gravity!(kpl)
     return nothing
 end
-function bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+function eval_forces!(bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
     for i in 1:nb
         eval_forces!(bodies[i])
     end
