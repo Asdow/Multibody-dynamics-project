@@ -82,7 +82,7 @@ end
 Determine whether sphere s intersects the negative halfspace of plane p. Body is needed to transform sphere center location from local coordinates to inertial frame.
 """
 function TestSphereHalfspace(s::CollSphere, p::Plane, b::Kappale)
-    center = b.sv.x + b.aux.R*s.c # Transform sphere center to world.
+    center = getsphereworldpos(s, b) # Transform sphere center to world.
     dist = dot(center, p.normal) - p.d; # Check for intersection.
     return dist <= s.r
 end
@@ -90,8 +90,30 @@ TestSphereHalfspace(p::Plane, b::Kappale) = TestSphereHalfspace(b.sh.coll, p, b)
 TestSphereHalfspace(b::Kappale, p::Plane) = TestSphereHalfspace(p, b)
 
 function getcollpos(s::CollSphere, p::Plane, b::Kappale)
-    center = b.sv.x + b.aux.R*s.c # Transform sphere center to world.
+    center = getsphereworldpos(s,b) # Transform sphere center to world.
     dist = dot(center, p.normal) - p.d; # Check for intersection.
-    point = point3D(center - dist*p.normal)
+    point = point3D(center - dist*p.normal) # Contact point is on the plane.
 end
 getcollpos(b::Kappale, p::Plane) = getcollpos(b.sh.coll, p, b)
+
+function getcollposdepth(s::CollSphere, p::Plane, b::Kappale)
+    center = getsphereworldpos(s,b) # Transform sphere center to world.
+    dist = dot(center, p.normal) - p.d; # Check for intersection.
+    point = point3D(center - dist*p.normal) # Contact point is on the plane.
+    depth = s.r-dist
+    return point, depth
+end
+getcollposdepth(b::Kappale, p::Plane) = getcollposdepth(b.sh.coll, p, b)
+
+function checkcoll(p::Plane, bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+    # Go through the list of bodies and check if any collide with plane. If true, add body index to list.
+    list = Int64[];
+    for i in 1:nb
+        if TestSphereHalfspace(bodies[i], p)
+            push!(list,i)
+        end
+    end
+    return list
+end
+checkcoll(Rsys::RBodySystem, p::Plane) = checkcoll(p, Rsys.bodies, Rsys.nb)
+checkcoll(p::Plane, Rsys::RBodySystem) = checkcoll(Rsys, p)

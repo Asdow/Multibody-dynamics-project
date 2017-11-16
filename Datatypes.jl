@@ -105,8 +105,14 @@ struct PenaltyMethod{T<:Real}
       coeff::PMCoeff{T}
       max_dyi::sa.MVector{100,T} # Max penetration error
 end
-function init_PenMethod(T)
-      pm = PenaltyMethod( PMCoeff(zeros(T,3)), sa.MVector{100, T}(zeros(T,100)) )
+function init_PenMethod(T, m=0.0)
+    # k = 1e3*m
+    # c = 5e2*m
+    # ki = 2e0*m
+    k = 5e4
+    c = 1.5e3
+    ki = 2e1
+    pm = PenaltyMethod( PMCoeff(T[k, c, ki]), sa.MVector{100, T}(zeros(T,100)) )
 end
 struct LuGre{T<:Real}
       Fs::sa.MVector{3,T} # Static friction force

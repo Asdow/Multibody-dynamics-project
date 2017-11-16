@@ -17,3 +17,11 @@ Create a sphere collision shape.
 function sphere_coll(radius::T, center = point3D{T}(T(0.0),T(0.0),T(0.0))) where {T<:Real}
     CollSphere(center,radius)
 end
+"""
+    getsphereworldpos(s::CollSphere, b::Kappale)
+Get the world position of a CollSphere.
+"""
+function getsphereworldpos(s::CollSphere, b::Kappale)
+    center = b.sv.x + b.aux.R*s.c # Transform sphere center to world.
+end
+getsphereworldpos(b::Kappale) = getsphereworldpos(b.sh.coll, b)

@@ -24,15 +24,32 @@ function eval_forces!(kpl::T) where {T<:Kappale}
     gravity!(kpl)
     return nothing
 end
-function eval_forces!(bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+function eval_forces!(bodies::Array{T,1}, nb, Flist) where {T<:Kappale}
     for i in 1:nb
         eval_forces!(bodies[i])
     end
+    for i in 1:length(Flist)
+        applyforces!(Flist[i])
+    end
     return nothing
 end
-eval_forces!(Rsys::RBodySystem{T}) where {T} = eval_forces!(Rsys.bodies, Rsys.nb)
+eval_forces!(Rsys::RBodySystem{T}, Flist) where {T} = eval_forces!(Rsys.bodies, Rsys.nb, Flist)
 
-
+function applyforces!(Fe::ForceE1{T}) where {T}
+    A = Fe.A
+    A.f.F[:] += Fe.F
+    A.f.T[:] += Fe.T
+    return nothing
+end
+function applyforces!(Fe::ForceE2{T}) where {T}
+    A = Fe.A
+    A.f.F[:] += Fe.F
+    A.f.T[:] += Fe.T
+    B = Fe.B
+    B.f.F[:] += -Fe.F
+    B.f.T[:] += Fe.Tb
+    return nothing
+end
 """
     skew4!(ωskew, ω)
 Calculates 4x4 skew symmetric matrix in global coordinate frame
