@@ -105,6 +105,20 @@ function getcollposdepth(s::CollSphere, p::Plane, b::Kappale)
 end
 getcollposdepth(b::Kappale, p::Plane) = getcollposdepth(b.sh.coll, p, b)
 
+function getcollposdepth(as::CollSphere, bs::CollSphere, a::Kappale, b::Kappale)
+    # Transform spheres to world frame
+    aw = getsphereworldpos(as,ab)
+    bw = getsphereworldpos(bs,bb)
+
+    d = aw - bw;
+    dist2 = dot(d, d);
+    # Spheres intersect if squared distance is less than squared sum of radii
+    radiusSum = as.r + bs.r;
+    
+    return point, depth
+end
+getcollposdepth(a::Kappale, b::Kappale) = getcollposdepth(a.sh.coll, b.sh.coll, a, b)
+
 function checkcoll(p::Plane, bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
     # Go through the list of bodies and check if any collide with plane. If true, add body index to list.
     list = Int64[];
@@ -117,3 +131,30 @@ function checkcoll(p::Plane, bodies::Array{T,1}, nb=length(bodies)) where {T<:Ka
 end
 checkcoll(Rsys::RBodySystem, p::Plane) = checkcoll(p, Rsys.bodies, Rsys.nb)
 checkcoll(p::Plane, Rsys::RBodySystem) = checkcoll(Rsys, p)
+
+function checkcoll(bodies::Array{T,1}, nb=length(bodies)) where {T<:Kappale}
+    # Go through the list of bodies and check if any collide with each other. If true, add body indices to list.
+    list = Tuple{Int64,Int64}[];
+    for j in 1:(nb-1)
+        for i in (j+1):nb
+            if TestSphereSphere(bodies[j], bodies[i])
+                push!(list,(j,i))
+            end
+        end
+    end
+    return list
+end
+checkcoll(Rsys::RBodySystem) = checkcoll(Rsys.bodies, Rsys.nb)
+
+function TestSphereSphere(a::CollSphere, b::CollSphere, ab::Kappale, bb::Kappale)
+    # Transform spheres to world frame
+    aw = getsphereworldpos(a,ab)
+    bw = getsphereworldpos(b,bb)
+    # Calculate squared distance between centers
+    d = aw - bw;
+    dist2 = dot(d, d);
+    # Spheres intersect if squared distance is less than squared sum of radii
+    radiusSum = a.r + b.r;
+    return dist2 <= radiusSum * radiusSum;
+end
+TestSphereSphere(a::RigidBody{T}, b::RigidBody{T}) where {T} = TestSphereSphere(a.sh.coll, b.sh.coll, a, b)

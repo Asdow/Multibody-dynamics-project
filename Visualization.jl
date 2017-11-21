@@ -108,6 +108,24 @@ function rotationmatrix(rotmax33::T) where {T<:StaticArrays.MArray{Tuple{3,3},Fl
         T0, T0, T0, T1,
     )
 end
+function rotationmatrix!(M::StaticArrays.MArray{Tuple{4,4},Type1,2,16}, rotmax33::StaticArrays.MArray{Tuple{3,3},Type2,2,9}) where {Type1, Type2}
+    T0 = zero(Type1)
+    T1 = one(Type1)
+    fill!(M, T0)
+
+    rotmatpartial!(M, rotmax33)
+    M[4,4] = T1
+    return nothing
+end
+
+function rotmatpartial!(M::StaticArrays.MArray{Tuple{4,4},Type1,2,16}, rotmax33::StaticArrays.MArray{Tuple{3,3},Type2,2,9}) where {Type1, Type2}
+    for j in 1:3
+        for i in 1:3
+            @inbounds M[i,j] = rotmax33[i,j]
+        end
+    end
+    return nothing
+end
 """
     translationmatrix(t::StaticArrays.MVector{3, T}) where {T<:AbstractFloat}
 Muuttaa kappaleen aseman GLVisualizen vaatimaan muotoon.
@@ -121,6 +139,25 @@ function translationmatrix(t::sa.MVector{3, T}) where {T<:AbstractFloat}
         t[1],t[2],t[3],T1,
     )
 end
+function translationmatrix!(M::StaticArrays.MArray{Tuple{4,4},Type1,2,16}, t) where {Type1}
+    T0 = zero(Type1)
+    T1 = one(Type1)
+    fill!(M, T0)
+
+    transmatpartial!(M,t)
+    for i in 1:4
+        M[i,i] = T1
+    end
+    return nothing
+end
+
+function transmatpartial!(M::StaticArrays.MArray{Tuple{4,4},Type1,2,16}, t) where {Type1}
+    for i in 1:3
+        M[i,4] = t[i]
+    end
+    return nothing
+end
+
 """
     transformation(kpl::Kappale)
 Muuttaa kappaleen aseman ja orientaation GLVisualizen vaatimaan muotoon.
@@ -135,6 +172,19 @@ function transformation(kpl::Kappale)
     rotmax33[1,3],  rotmax33[2,3],  rotmax33[3,3],  T0,
     t[1], t[2], t[3], T1,
     )
+end
+function transformation!(M, kpl::Kappale)
+    T0, T1 = zero(eltype(M)), one(eltype(M))
+    rotmax33 = kpl.aux.R;
+    t = kpl.sv.x;
+
+    rotmatpartial!(M, rotmax33)
+    transmatpartial!(M, t)
+    M[4,1] = T0;
+    M[4,2] = T0;
+    M[4,3] = T0;
+    M[4,4] = T1;
+    return nothing
 end
 """
     body_vis(body::Kappale)
@@ -156,7 +206,11 @@ end
 Updates a body's visualization inplace.
 """
 function body_vis!(bodyvis::Array{GLAbstraction.Context{GLAbstraction.DeviceUnit},1}, body::T) where {T<:Kappale}
-    gl.set_arg!(bodyvis, :model, transformation(body))
+    transmat = gmat4f0[1];
+    transformation!(transmat, body)
+
+    settransform!(bodyvis, transmat)
+    # gl.set_arg!(bodyvis, :model, transformation(body))
     return nothing
 end
 """
@@ -201,3 +255,21 @@ end
 
 # Way to get the attributedata/keywords from a visualization.
 # eg. bodyvis.children[].uniforms
+
+"""
+    settransform!(robj::gla.RenderObject, transmat)
+Sets the RenderObject's transformation to transmat.
+"""
+function settransform!(robj::gla.RenderObject, transmat)
+    current_val = robj[:model];
+    # push!(current_val, transmat) # Turvallisempi keino. Allokaatiot on puolet gl.set_arg!:sta
+    Reactive.set_value!(current_val, transmat); # Riskillä, mutta ei allokaatioita.
+    return nothing
+end
+settransform!(robj::gla.Context, transmat) = settransform!(robj.children[], transmat)
+function settransform!(robj::Vector{gla.Context{gla.DeviceUnit}}, transmat)
+    for i in robj
+        settransform!(i, transmat)
+    end
+    return nothing
+end

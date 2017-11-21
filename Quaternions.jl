@@ -63,7 +63,7 @@ end
 Calculates the Jacobian matrix for unit quaternion so that q̇ = 1/2 * G(q) * ω. Where q̇ is time rate of change of rotational parameters and ω is rotational velocity of the body.
 """
 function Gmat(q::mQuaternion)
-      G = sa.MMatrix{4,3, Float64}(zeros(4,3))
+      G = sa.MMatrix{4,3,Float64,12}(zeros(4,3))
       @inbounds begin
             G[1,1] = -q.v1
             G[2,1] = q.s

@@ -43,6 +43,9 @@ end
 function pdot(a::Kappale, point)
       pdot = a.dv.ẋ + cross(a.dv.ω, (point - a.sv.x) )
 end
+function pdot!(pdot, a::Kappale, point)
+      pdot[:] = a.dv.ẋ + cross(a.dv.ω, (point - a.sv.x) )
+end
 
 # Funktio, joka laskee integraatiotermin
 function Iterm(max_dyi)
@@ -54,6 +57,23 @@ function Iterm(max_dyi)
             @inbounds Iterm += λ^(t_step-i-1) * max_dyi[i]
       end
       return Iterm
+end
+
+function collision(a::Kappale, b::Kappale)
+    # Get point of collision and penetration depth
+    point, depth = getcollposdepth(b,p)
+    # Assume plane is always stationary, so vrel = ṗa
+    ṡ = pdot(b, point)
+    ṡn = vreln(ṡ, p.normal)
+    It = Iterm(b.knt.max_dyi)
+
+    Fp = F_penalty(b.knt.coeff.k, depth, b.knt.coeff.c, ṡn, b.knt.coeff.ki, It, 1)
+    Fpvec = Fp.*p.normal # Penaltyforce points towards sphere
+    # Calculate moment affecting the body, as Collshape isn't necessarily on ref origin.
+    ra = point - b.sv.x;
+    T = cross(ra, Fpvec)
+    # Create a Force struct that only points to body b.
+    ForceE1(b, Fpvec, T)
 end
 
 function collision(b::Kappale, p::Plane)
@@ -73,10 +93,18 @@ function collision(b::Kappale, p::Plane)
     ForceE1(b, Fpvec, T)
 end
 
+
 function resolvecoll(Rsys, list, p::Plane)
     Flist = ForceElement{eltype(Rsys)}[];
     for i in list
         push!(Flist, collision(Rsys.bodies[i], p))
+    end
+    return Flist
+end
+function resolvecoll(Rsys, Flist)
+    Flist = ForceElement{eltype(Rsys)}[];
+    for i in list
+        push!(Flist, collision(Rsys.bodies[i[1]], Rsys.bodies[i[2]]))
     end
     return Flist
 end
