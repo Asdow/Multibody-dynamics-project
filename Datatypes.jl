@@ -10,12 +10,7 @@ mutable struct mpoint3D{T<:Real} <: sa.FieldVector{3, T}
     y::T
     z::T
 end
-abstract type Collshape{T<:Real} end
-struct CollSphere{T} <: Collshape{T}
-    # Region R = { {x,y,z} | (x-c.x)^2 + (y-c.y)^2 + (z-c.z)^2 <= r^2 }
-    c::point3D{T} # Sphere center. Defined in body local coordinates. If c = zeros(3), it coincides with the reference frame location.
-    r::T # Radius of the sphere.
-end
+include("CollSys.jl");
 # Abstraktityyppi, jota käytetään tyyppien määrittelyssä
 abstract type Kappale{T<:Real} end
 #################################################################################
@@ -29,7 +24,7 @@ struct AABB{T<:Real}
       min::mpoint3D{T}
       max::mpoint3D{T}
 end
-struct Shape{T<:Real}
+mutable struct Shape{T<:Real}
       # Body shape described as a HomogenousMesh in local coordinates
       mesh::gt.HomogenousMesh{gt.Point{3,Float32},gt.Face{3,gt.OffsetInteger{-1,UInt32}},gt.Normal{3,Float32},Void,Void,Void,Void}
       # Coll shape
@@ -66,6 +61,9 @@ function init_StateVariables(T)
       q.s = 1.0;
       sv = StateVariables( mpoint3D(zeros(T,3)), q )
 end
+getx(sv::StateVariables{T}) where {T} = sv.x
+getq(sv::StateVariables{T}) where {T} = sv.q
+
 struct Derivatives{T<:Real}
       ẋ::sa.MVector{3,T} # Reference point velocity in global coordinates
       q̇::mQuaternion{T} # Euler parameters time derivative
@@ -75,6 +73,10 @@ function init_Derivatives(T)
     vec = sa.MVector{3, T}(zeros(T,3))
     dv = Derivatives( vec, mQuaternion(zeros(T,4)), deepcopy(vec) )
 end
+getxdot(sv::Derivatives{T}) where {T} = sv.ẋ
+getqdot(sv::Derivatives{T}) where {T} = sv.q̇
+getomega(sv::Derivatives{T}) where {T} = sv.ω
+
 struct SecDerivatives{T<:Real}
     a::sa.MVector{3,T} # Reference point acc in global coordinates
     α::sa.MVector{3,T} # ang. acc.
@@ -83,9 +85,12 @@ function init_SecDerivatives(T)
     vec = sa.MVector{3, T}(zeros(T,3))
     dv = SecDerivatives( vec, deepcopy(vec) )
 end
+geta(sv::SecDerivatives{T}) where {T} = sv.a
+getalpha(sv::SecDerivatives{T}) where {T} = sv.α
+
 struct AuxValues{T<:Real}
       R::sa.MArray{Tuple{3,3}, T, 2, 9} # Rotation matrix. Local -> global
-      R_inv::sa.MArray{Tuple{3,3}, T, 2, 9} # Rotation matrix. Global -> local
+      Rinv::sa.MArray{Tuple{3,3}, T, 2, 9} # Rotation matrix. Global -> local
       ωs::sa.MArray{Tuple{4,4}, T, 2, 16} # Skew symmetric matrix
 end
 function init_Aux(T)
@@ -93,6 +98,9 @@ function init_Aux(T)
       Jb2 = sa.MArray{Tuple{4,4},T}(zeros(T,4,4))
       aux = AuxValues( Jb, deepcopy(Jb), Jb2 )
 end
+getRotmat(aux::AuxValues{T}) where {T} = aux.R
+getRotmatinv(aux::AuxValues{T}) where {T} = aux.Rinv
+
 struct Forces{T<:Real}
       F::sa.MVector{3,T} # Forces effecting the body in global coordinates
       T::sa.MVector{3,T} # Moments effecting the body in global coordinates
@@ -101,6 +109,9 @@ function init_Forces(T)
       vec = sa.MVector{3,T}(zeros(T,3))
       forces = Forces( vec, deepcopy(vec) )
 end
+getForce(F::Forces{T}) where {T} = F.F
+getTorque(F::Forces{T}) where {T} = F.T
+
 struct PenaltyMethod{T<:Real}
       coeff::PMCoeff{T}
       max_dyi::sa.MVector{100,T} # Max penetration error
@@ -126,50 +137,3 @@ function init_Lugre(mus::T, muk::T) where {T<:Real}
       vec = sa.MVector{3, T}(zeros(T,3))
       lugre = LuGre( vec, deepcopy(vec), deepcopy(vec), deepcopy(vec), mus, muk )
 end
-#################################################################################
-# Kappaletyyppien määrittely
-struct RigidBody{T} <: Kappale{T}
-      sh::Shape{T}
-      md::MassData{T}
-      sv::StateVariables{T}
-      dv::Derivatives{T}
-      ddv::SecDerivatives{T}
-      aux::AuxValues{T}
-      f::Forces{T}
-      knt::PenaltyMethod{T}
-      kd::LuGre{T}
-end
-import Base.eltype
-eltype(body::RigidBody{T}) where {T} = T
-eltype(T2::Type{RigidBody{T}}) where {T} = T
-
-mutable struct RBodySystem{T<:Real}
-    bodies::Array{RigidBody{T},1} # A list of bodies
-    nb::Int64 # Number of bodies
-    t::Float64 # time
-end
-function init_RSys(bodies::Array{RigidBody{T},1}) where {T}
-    Rsys = RBodySystem(bodies, length(bodies), 0.0)
-end
-import Base.length
-length(a::RBodySystem) = a.nb
-eltype(a::RBodySystem{T}) where {T} = T
-eltype(a::Type{RBodySystem{T}}) where {T} = T
-
-function randomize!(body::T) where {T<:Kappale}
-    body.sv.x[:] = rand(3).*3+rand(3);
-    body.sv.q[:] = rand(4);
-    normalize!(body.sv.q)
-    rotmat!(body)
-    inverse!(body.aux.R_inv, body.aux.R)
-    Jb2world!(body)
-    Jb_inv2world!(body)
-    return nothing
-end
-function randomize!(bodies, nb=length(bodies))
-    for i in 1:nb
-        randomize!(bodies[i])
-    end
-    return nothing
-end
-randomize!(Rsys::RBodySystem) = randomize!(Rsys.bodies, Rsys.nb)

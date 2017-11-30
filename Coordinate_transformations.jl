@@ -55,10 +55,10 @@ function body2world!(AABB::AABB, svx, R, AABBb::AABB)
       return nothing
 end
 """
-    Jb_inv2world!(kpl::Kappale)
+    Jbinv2world!(kpl::Kappale)
 Transforms body's local inverted inertia matrix to world.
 """
-function Jb_inv2world!(kpl::Kappale)
+function Jbinv2world!(kpl::Kappale)
       J_local2global!(kpl.md.J_inv, kpl.aux.R, kpl.md.Jb_inv)
       return nothing
 end
@@ -70,6 +70,16 @@ function Jb2world!(kpl::Kappale)
       J_local2global!(kpl.md.J, kpl.aux.R, kpl.md.Jb)
       return nothing
 end
+"""
+    Inertias2world!(kpl::Kappale)
+Transforms body's inertias to world frame.
+"""
+function Inertias2world!(kpl::Kappale)
+      Jb2world!(kpl)
+      Jbinv2world!(kpl)
+      return nothing
+end
+
 """
     J_local2global!(J, rotmat_body, Jbody)
 Transforms 3x3 matrix from local to world. Saves to J.
@@ -116,8 +126,8 @@ function J_local2global!(J, rotmat_body, Jbody)
 end
 """
     rotmat!(body::Kappale)
-Calculates body's rotation matrix from quaternions.
+Calculates body's rotation matrix from its quaternion.
 """
 function rotmat!(body::Kappale)
-      rotmat!(body.aux.R, body.sv.q)
+      rotmat!(getRotmat(body), getWorldOrientation(body))
 end

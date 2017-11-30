@@ -5,6 +5,9 @@ include("Packages.jl")
 include("Globals.jl")
 include("Quaternions.jl")
 include("Datatypes.jl")
+include("Staticbody.jl")
+include("Rigidbody.jl")
+include("Rbodysys.jl")
 include("Shapes.jl")
 include("apufunktiot.jl")
 include("Visualization.jl")
@@ -18,7 +21,9 @@ include("Dynamics_functions.jl")
 include("EOMs.jl")
 
 function test()
-    # Rsys = init_RSys([create_cube(ones(3)..., 15.0, 0.6, 0.45) for i in 1:5]);
+    Csys = createCollSystem()
+    addCollShape!(Csys)
+    addSphere!(getCollShapes(Csys)[1], 1.0)
     Rsys = init_RSys([create_sphere(1.0, 100.0, 0.6, 0.4) for i in 1:5]);
     nb = length(Rsys);
     bodies = Rsys.bodies;
