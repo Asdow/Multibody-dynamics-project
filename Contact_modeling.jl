@@ -61,19 +61,26 @@ end
 
 function collision(a::Kappale, b::Kappale)
     # Get point of collision and penetration depth
-    point, depth = getcollposdepth(b,p)
-    # Assume plane is always stationary, so vrel = ṗa
-    ṡ = pdot(b, point)
-    ṡn = vreln(ṡ, p.normal)
-    It = Iterm(b.knt.max_dyi)
+    point, depth, n̂ = getcollposdepth(a,b)
+    ṡ = pdot(a, point) - pdot(b,point)
+    ṡn = vreln(ṡ, n̂)
+    #TODO Implement Iterm properly. Needs rethinking on how to do it when bodies have multiple contacts with different bodies.
+    It = 0.0
+    # It = Iterm(b.knt.max_dyi)
+    #NOTE not sure if this is the best way to combine two bodies' coefficients. Makes sense for k and c but not ki
+    k = (inv(a.knt.coeff.k) + inv(b.knt.coeff.k))^(-1)
+    c = (inv(a.knt.coeff.c) + inv(b.knt.coeff.c))^(-1)
+    ki =(inv(a.knt.coeff.ki) + inv(b.knt.coeff.ki))^(-1)
 
-    Fp = F_penalty(b.knt.coeff.k, depth, b.knt.coeff.c, ṡn, b.knt.coeff.ki, It, 1)
-    Fpvec = Fp.*p.normal # Penaltyforce points towards sphere
+    Fp = F_penalty(k, depth, c, ṡn, ki, It, 1)
+    Fpvec = Fp.*n̂ # Penaltyforce points towards body A
     # Calculate moment affecting the body, as Collshape isn't necessarily on ref origin.
-    ra = point - b.sv.x;
+    ra = point - a.sv.x;
     T = cross(ra, Fpvec)
-    # Create a Force struct that only points to body b.
-    ForceE1(b, Fpvec, T)
+    rb = point - b.sv.x;
+    Tb = cross(rb, -Fpvec)
+    # Create a Force struct
+    ForceE2(a, b, Fpvec, T, Tb)
 end
 
 function collision(b::Kappale, p::Plane)
@@ -101,7 +108,7 @@ function resolvecoll(Rsys, list, p::Plane)
     end
     return Flist
 end
-function resolvecoll(Rsys, Flist)
+function resolvecoll(Rsys, list)
     Flist = ForceElement{eltype(Rsys)}[];
     for i in list
         push!(Flist, collision(Rsys.bodies[i[1]], Rsys.bodies[i[2]]))

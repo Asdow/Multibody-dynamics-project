@@ -107,15 +107,17 @@ getcollposdepth(b::Kappale, p::Plane) = getcollposdepth(b.sh.coll, p, b)
 
 function getcollposdepth(as::CollSphere, bs::CollSphere, a::Kappale, b::Kappale)
     # Transform spheres to world frame
-    aw = getsphereworldpos(as,ab)
-    bw = getsphereworldpos(bs,bb)
+    aw = getsphereworldpos(as,a)
+    bw = getsphereworldpos(bs,b)
+    # Vector from B to A
+    BA = aw-bw
+    # unit vector pointing to sphere A
+    n̂ = normalize(BA)
 
-    d = aw - bw;
-    dist2 = dot(d, d);
-    # Spheres intersect if squared distance is less than squared sum of radii
-    radiusSum = as.r + bs.r;
-    
-    return point, depth
+    depth = (as.r+bs.r) - norm(BA)
+    # Coll. point is the average of coll. depth along coll. normal
+    point = 0.5*( aw+as.r*n̂ + bw-bs.r*n̂ )
+    return point, depth, n̂
 end
 getcollposdepth(a::Kappale, b::Kappale) = getcollposdepth(a.sh.coll, b.sh.coll, a, b)
 

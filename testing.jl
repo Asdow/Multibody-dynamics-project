@@ -19,7 +19,7 @@ include("EOMs.jl")
 
 function test()
     # Rsys = init_RSys([create_cube(ones(3)..., 15.0, 0.6, 0.45) for i in 1:5]);
-    Rsys = init_RSys([create_sphere(1.0, 100.0, 0.6, 0.4) for i in 1:2]);
+    Rsys = init_RSys([create_sphere(1.0, 100.0, 0.6, 0.4) for i in 1:5]);
     nb = length(Rsys);
     bodies = Rsys.bodies;
     randomize!(Rsys)
@@ -37,6 +37,7 @@ function test()
     gl._view(bodyvis, window, camera=:perspective);
 
     sleep(1)
+    Rsys.t = 0.0;
     while Rsys.t < simTime
         # NOTE Plane check is a special case at the moment. Needs to not be.
         list = checkcoll(Rsys, plane);
@@ -46,6 +47,7 @@ function test()
         FlistColl = resolvecoll(Rsys, collList);
 
         eval_forces!(Rsys, Flist);
+        applyforces!(FlistColl);
         dynamics!(Rsys)
 
         body_vis!(bodyvis, Rsys)

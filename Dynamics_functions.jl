@@ -46,8 +46,14 @@ function applyforces!(Fe::ForceE2{T}) where {T}
     A.f.F[:] += Fe.F
     A.f.T[:] += Fe.T
     B = Fe.B
-    B.f.F[:] += -Fe.F
+    B.f.F[:] -= Fe.F
     B.f.T[:] += Fe.Tb
+    return nothing
+end
+function applyforces!(Flist::Array{ForceElement{T},1}) where {T}
+    for i in Flist
+        applyforces!(i)
+    end
     return nothing
 end
 """
